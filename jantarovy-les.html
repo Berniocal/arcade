@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#101b25">
+<title>Legenda o Jantarovém lese · Arcade</title>
+<meta name="description" content="Originální česká fantasy point-and-click adventura inspirovaná klasikami 90. let. Hratelná dotykem i myší, offline.">
+<style>
+:root{color-scheme:dark;--gold:#eed39a;--panel:#111b25;--line:#405466;--ink:#e8e2d1}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;overscroll-behavior:none;background:#091019;color:var(--ink);font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
+button,a{font:inherit;-webkit-tap-highlight-color:transparent}button{cursor:pointer;color:inherit}button:focus-visible,a:focus-visible{outline:2px solid #ffe6a0;outline-offset:2px}
+#app{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden;background:radial-gradient(ellipse at top,#25364a,#091019 70%)}
+header{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:49px;padding:5px max(10px,env(safe-area-inset-right)) 5px max(10px,env(safe-area-inset-left));border-bottom:1px solid #385063;background:#101b27}
+.brand{display:flex;align-items:center;gap:9px;min-width:0;font-weight:700;color:var(--gold);font-family:Georgia,serif;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.brand a{font:12px system-ui,sans-serif;color:#b8c8d2;text-decoration:none;flex:0 0 auto}
+.toolbar{display:flex;align-items:center;gap:5px;flex:0 0 auto}.toolbar button{min-width:39px;min-height:36px;border:1px solid #415264;background:#243443;border-radius:8px;padding:5px 9px}.toolbar button:active{background:#486278}
+#main{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5px 8px 8px;gap:7px}
+#sceneBox{width:100%;max-width:min(1100px,calc((100dvh - 195px)*16/9));aspect-ratio:16/9;position:relative;overflow:hidden;border:2px ridge #8f7654;border-radius:5px;box-shadow:0 10px 28px #000a;background:#090c13}
+canvas{width:100%;height:100%;display:block;touch-action:none;user-select:none;cursor:pointer}
+#sceneTitle{position:absolute;left:10px;top:10px;font-size:clamp(11px,2vw,16px);font-family:Georgia,serif;pointer-events:none;color:#ffecb8;text-shadow:0 2px 4px #000,0 0 8px #000;font-weight:bold;letter-spacing:.4px}
+#hintLabel{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:#101b27e8;border:1px solid #9b8c68;border-radius:8px;padding:4px 12px;pointer-events:none;max-width:95%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+#hintLabel:empty{display:none}
+#bottom{flex:0 0 auto;width:min(100%,1100px);display:flex;flex-direction:column;gap:5px}
+#dialog{min-height:47px;border:1px solid var(--line);background:#172432;border-radius:7px;padding:9px 12px;display:flex;align-items:center;gap:10px;color:#ebdfc7}
+#dialog .seal{font-size:21px;flex:0 0 auto}#dialogText{font-size:clamp(12px,2.6vw,15px)}
+#inventoryBar{display:flex;align-items:center;gap:6px;min-height:68px;padding:6px 8px;background:#101923;border:1px solid #38495a;border-radius:7px}
+#inventoryBar strong{font-size:10px;letter-spacing:.7px;writing-mode:vertical-rl;color:#aab5bd;line-height:1.1}
+#inventory{display:flex;align-items:stretch;gap:6px;min-width:0;flex:1;overflow-x:auto;scrollbar-width:thin}
+.item{position:relative;min-width:72px;min-height:55px;background:linear-gradient(#2a3948,#192632);border:1px solid #4a5e6b;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:3px 6px;white-space:nowrap}
+.item .emoji{font-size:23px;line-height:1}.item small{color:#c9d0d4;font-size:10px}.item.active{border-color:#ffdc83;box-shadow:inset 0 0 0 1px #ffdc83;background:#54432d}
+#empty{font-style:italic;color:#889eab;align-self:center;font-size:12px}
+#quick{max-height:73px;display:flex;align-items:center;gap:5px;overflow-x:auto;padding:1px 2px 3px;min-height:37px;scrollbar-width:thin}
+#quick button{flex:0 0 auto;border:1px solid #415468;border-radius:16px;padding:6px 10px;background:#192938;font-size:12px;min-height:30px}
+#quick button.portal{color:#f5d69f;border-color:#776344}
+#footnote{font-size:10px;color:#8a9caa;text-align:center;line-height:1.3}
+.overlay{position:fixed;inset:0;z-index:8;display:grid;place-items:center;background:#070b13de;padding:16px;overflow:auto}
+[hidden]{display:none!important}
+.panel{width:min(560px,100%);background:linear-gradient(145deg,#24364a,#101923);border:2px solid #9d8055;border-radius:16px;padding:clamp(18px,4vw,30px);box-shadow:0 18px 80px #000b}
+.panel h1{font:clamp(26px,5vw,43px)/1.1 Georgia,serif;color:#ffe0a4;margin:5px 0 16px}
+.panel h2{font:28px Georgia,serif;color:#ffe0a4;margin:0 0 14px}
+.panel p{color:#d6d5ce;margin:10px 0;line-height:1.65}
+.panel .eyebrow{letter-spacing:2.5px;text-transform:uppercase;font-size:11px;color:#d8bd83}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.actions button{border:1px solid #a79263;border-radius:9px;background:#605037;color:#fff2ce;padding:11px 16px;font-weight:700;min-height:44px}
+.actions button.secondary{background:#263748;border-color:#67808c;color:#d5e7ed}
+#orientation{display:none}
+@media(max-width:650px){header{min-height:44px}.brand{font-size:14px;gap:6px}.toolbar button{min-width:35px;min-height:34px;padding:4px 6px}#main{padding:4px 4px 5px;justify-content:flex-start;gap:5px}#sceneBox{max-width:none}#bottom{gap:4px}#inventoryBar{min-height:61px;padding:4px}.item{min-width:65px;min-height:53px}.item small{font-size:9px}#dialog{min-height:60px}#footnote{font-size:9px}}
+@media(max-width:650px) and (orientation:portrait){#orientation{display:block;font-size:11px;color:#e1c58e;text-align:center}}
+@media(max-height:450px) and (orientation:landscape){header{min-height:35px}.brand{font-size:14px}.toolbar button{min-height:29px}#main{padding:2px 6px;gap:3px;flex-direction:row;justify-content:center}#sceneBox{width:auto;height:100%;max-width:calc((100dvh - 47px)*16/9);flex:1 1 auto}#bottom{width:clamp(160px,27vw,265px);height:100%;justify-content:space-between}#dialog{min-height:0;flex:1;padding:7px}#dialogText{font-size:12px}#inventoryBar{min-height:63px}#quick{max-height:80px;min-height:33px;flex-wrap:wrap;align-content:flex-start;overflow-y:auto}#quick button{font-size:11px;padding:4px 6px;min-height:27px}#footnote,#orientation{display:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+<header><div class="brand"><a href="./" aria-label="Zpět na Arcade">← ARCADE</a><span>✦ Legenda o Jantarovém lese</span></div>
+<div class="toolbar">
+<button id="helpBtn" title="Nápověda" aria-label="Nápověda">?</button>
+<button id="spotsBtn" title="Zvýraznit aktivní místa" aria-label="Zvýraznit aktivní místa">◉</button>
+<button id="soundBtn" title="Zvuky" aria-label="Zapnout nebo vypnout zvuky">♪̸</button>
+<button id="fullBtn" title="Celá obrazovka" aria-label="Celá obrazovka">⛶</button>
+</div></header>
+<div id="main">
+<div id="sceneBox"><canvas id="game" width="960" height="540" aria-label="Herní obrazovka – dotýkej se předmětů a cest"></canvas><div id="sceneTitle"></div><div id="hintLabel"></div></div>
+<div id="bottom">
+<div id="dialog" role="status" aria-live="polite"><span class="seal" aria-hidden="true">✧</span><span id="dialogText">Dotkni se věcí ve scéně nebo si vyber jednu z nabízených akcí.</span></div>
+<div id="inventoryBar"><strong>VAK</strong><div id="inventory"></div></div>
+<div id="quick" aria-label="Dostupné akce pro dotykové ovládání"></div>
+<div id="orientation">↻ Otočením telefonu na šířku získáš větší herní obrazovku.</div>
+<div id="footnote">Dotkni se předmětu • Vyber věc z vaku a potom místo použití • Dlouhý dotyk = prozkoumat</div>
+</div>
+</div>
+</div>
+<div class="overlay" id="welcome"><section class="panel" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle"><div class="eyebrow">Dobrodružství pro jednoho hráče</div><h1 id="welcomeTitle">Legenda o Jantarovém lese</h1><p>V lesním království pohaslo Srdce jitra. Obnovíš jeho světlo, než na krajinu padne věčná noc?</p><p>Procházej kouzelnými místy, mluv s postavami, sbírej věci a spojuj stopy. Hru lze celou hrát dotykem na telefonu.</p><div class="actions"><button id="startBtn">Nová hra</button><button id="continueBtn" class="secondary" hidden>Pokračovat</button></div><p style="font-size:11px;color:#b6bbc0">Nezávislá původní adventura inspirovaná žánrem fantasy point-and-click. Není to původní hra The Legend of Kyrandia.</p></section></div>
+<div class="overlay" id="help" hidden><section class="panel" role="dialog" aria-modal="true" aria-labelledby="helpTitle"><h2 id="helpTitle">Jak hrát</h2><p>Ťukni na postavu, předmět nebo cestu. Spodní tlačítka nabízejí stejná místa i na malém telefonu. Prohlížet lze také podržením prstu.</p><p>Věci ve vaku vybereš jedním klepnutím. Pak ťukni na místo, na které chceš věc použít. Druhým klepnutím na vybraný předmět výběr zrušíš. Věci lze používat i opakovaně.</p><p>◉ ukáže aktivní místa, ♪ ovládá zvuky, ⛶ přepíná fullscreen. Hra se ukládá do tohoto prohlížeče automaticky. Na počítači funguje i myš a klávesnice.</p><div class="actions"><button id="closeHelp">Zpět do hry</button><button id="restartBtn" class="secondary">Začít znovu</button></div></section></div>
+<div class="overlay" id="victory" hidden><section class="panel" role="dialog" aria-modal="true" aria-labelledby="victoryTitle"><div class="eyebrow">Konec první kapitoly</div><h1 id="victoryTitle">Les znovu dýchá!</h1><p>Sluneční jantar a měsíční květ se spojily. Nad svatyní se rozlilo světlo a staré kouzlo opět chrání všechny stezky.</p><p>Dokončil(a) jsi příběh Jantarového lesa. Můžeš se vrátit a prozkoumat místa nebo začít znovu.</p><div class="actions"><button id="winClose">Procházet svět</button><button id="winNew" class="secondary">Hrát znovu</button></div></section></div>
+<script>
+"use strict";
+(() => {
+const W=960,H=540,$=s=>document.querySelector(s), canvas=$("#game"),c=canvas.getContext("2d"),SAVE="berniocal.arcade.jantarovy-les.v1";
+const ITEM={
+ lahvicka:{name:"Lahvička",icon:"🧪",hint:"Skleněná lahvička. Hodí se na vodu."},
+ voda:{name:"Pramenitá voda",icon:"💧",hint:"Čistá pramenitá voda v lahvičce."},
+ bylina:{name:"Lesní bylina",icon:"🌿",hint:"Voní po dešti a léčivém kouzlu."},
+ prach:{name:"Světelný prach",icon:"✨",hint:"Dar říční víly. Rozzáří i nejhlubší jeskyni."},
+ klic:{name:"Měděný klíč",icon:"🗝️",hint:"Stará klíčenka patří k bráně zahrady."},
+ jantar:{name:"Sluneční jantar",icon:"🔶",hint:"Uchovává paprsek pradávného slunce."},
+ kvet:{name:"Měsíční květ",icon:"🌸",hint:"Otevírá se jen po napití čisté vody."}
+};
+const TITLES={nadvori:"Nádvoří staré pevnosti",haj:"Šeptající háj",potok:"Stříbrný potok",ruiny:"Zapomenuté ruiny",jeskyne:"Jeskyně ozvěn",zahrada:"Měsíční zahrada",svatyne:"Svatyně jitra"};
+const fresh=()=>({room:"nadvori",items:[],flags:{},runes:[],won:false});
+let state=fresh(),hero={x:315,target:315,walk:null},hover=null,showSpots=false,sound=false,last=0,tick=0,started=false;
+const keep=()=>{try{localStorage.setItem(SAVE,JSON.stringify(state));}catch(e){}};
+const stored=()=>{try{let v=JSON.parse(localStorage.getItem(SAVE)||"null");return v&&TITLES[v.room]&&Array.isArray(v.items)&&typeof v.flags==="object"?{...fresh(),...v}:null;}catch(e){return null;}};
+const has=id=>state.items.includes(id),flag=id=>!!state.flags[id],setFlag=id=>{state.flags[id]=true;keep();};
+function add(id){if(!has(id)){state.items.push(id);keep();ui();tone(600);say("Do vaku přibylo: "+ITEM[id].name+".");}}
+function remove(id){state.items=state.items.filter(x=>x!==id);keep();ui();}
+function replace(a,b){remove(a);add(b);}
+function say(t){$("#dialogText").textContent=t;}
+function tone(freq=520){if(!sound)return;try{let A=window.AudioContext||window.webkitAudioContext;let ac=window.__forestAudio||(window.__forestAudio=new A());ac.resume();let o=ac.createOscillator(),g=ac.createGain();o.type="sine";o.frequency.setValueAtTime(freq,ac.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(80,freq*.63),ac.currentTime+.17);g.gain.setValueAtTime(.045,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.23);o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+.24);}catch(e){}}
+function enter(room){state.room=room;keep();hero.x=room==="nadvori"?360:room==="potok"?250:room==="svatyne"?245:620;hero.target=hero.x;hover=null;ui();say(({nadvori:"Za kamennou branou začíná tvoje pátrání. Stařec u fontány možná něco ví.",haj:"Vítr šumí v listí. Mezi kořeny roste voňavá bylina.",potok:"Na kameni sedí říční víla. Vypadá, že něco potřebuje.",ruiny:"Mezi rozbitými pilíři leží kniha dávných znamení.",jeskyne:"Stěny jeskyně šeptají dávné hádanky.",zahrada:"Zahradu zahaluje stříbrné světlo. Květy tu spí.",svatyne:"V srdci svatyně čeká prastarý oltář."})[room]);tone(320);}
+let selected=null;
+function choose(id){selected=selected===id?null:id;ui();if(selected)say(ITEM[id].hint+" Vyber místo použití.");else say("Vyber místo, se kterým chceš pracovat.");}
+function use(item,accepted,wrong){if(!selected)return false;if(accepted&&accepted.includes(selected))return true;say(wrong||("Tady "+ITEM[selected].name.toLowerCase()+" nepomůže."));tone(180);return false;}
+function doAction(h){if(!h)return;const id=h.id;const s=state.room;
+ if(h.go){if(h.go==="zahrada"&&!flag("gardenOpen")){if(has("klic")){setFlag("gardenOpen");say("Měděný klíč zaskřípal v zámku. Brána do zahrady se otevřela!");tone(670);selected=null;ui();}else say("Brána do zahrady je zamčená. Někde musí být klíč.");return;}selected=null;enter(h.go);return;}
+ if(id==="lahvicka"){if(!flag("vialFound")){setFlag("vialFound");add("lahvicka");}else say("Na lavici už nic dalšího neleží.");}
+ else if(id==="fountain"){if(selected==="lahvicka"){replace("lahvicka","voda");selected=null;say("Nabral(a) jsi čistou vodu z pramene.");}else if(selected==="voda")say("Lahvička už je plná.");else if(selected)use();else say("Fontána vydává tichou melodii. Voda vypadá nádherně čistě.");}
+ else if(id==="elder"){say("Strážce: „Srdce jitra se probudí slunečním jantarem a měsíčním květem. Najdi říční vílu, les a staré ruiny.“");}
+ else if(id==="herb"){if(!flag("herbFound")){setFlag("herbFound");add("bylina");}else say("Bylina se znovu rozroste až příští jaro.");}
+ else if(id==="tree"){say("Kmen dubu je starý jako království. V kůře jsou vyryté značky: list, vlna, hvězda.");}
+ else if(id==="stone"){say("Průzračný potok šumí přes oblázky. U břehu se třpytí malá rybka.");}
+ else if(id==="fairy"){
+  if(selected==="bylina"){remove("bylina");setFlag("fairyHerb");selected=null;say("Víla si přivoněla k bylině: „Děkuji! Ještě kapku pramenité vody, prosím.“");}
+  else if(selected==="voda"){replace("voda","lahvicka");setFlag("fairyWater");selected=null;say("Víla se napila pramenité vody: „To je úleva! Ještě mi pomůže voňavá lesní bylina.“");}
+  else if(selected)use();
+  else if(flag("fairyGift"))say("Víla: „Světelný prach tě v jeskyni ochrání. List, vlna, hvězda – pořadí si pamatuj.“");
+  else say("Víla: „Ztratila jsem sílu. Přines mi voňavou bylinu ze háje a čistou vodu z pramene.“");
+  if(flag("fairyHerb")&&flag("fairyWater")&&!flag("fairyGift")){setFlag("fairyGift");add("prach");say("Víla se rozzářila: „Za tvou laskavost dostaneš světelný prach. V jeskyni ti ukáže skryté znamení!“");}
+ }
+ else if(id==="book"){say("Kronika říká: „Nejprve LIST, potom VLNA a nakonec HVĚZDA. Tehdy kámen vydá sluneční světlo.“");}
+ else if(id==="key"){if(!flag("keyFound")){setFlag("keyFound");add("klic");}else say("Zpod kamene už jsi klíč vytáhl(a).");}
+ else if(id==="owl"){say("Sova: „V jeskyni kameny poslouchají. V zahradě čeká květ na vodu z nádvoří. Pravý klíč se skrývá v ruinách.“");}
+ else if(id==="dark"){say("Je tu přílišná tma. Potřebuješ světlo, které dokáže proniknout kouzelnou temnotou.");}
+ else if(id==="rune"){
+  if(!has("prach")){say("Znamení se ztrácejí ve tmě. Potřebuješ světelný prach.");return;}
+  if(flag("caveDone")){say("Trojice znamení už svítí správným pořadím.");return;}
+  const order=["list","vlna","hvezda"],expected=order[state.runes.length];
+  if(h.rune===expected){state.runes.push(h.rune);keep();tone(530+state.runes.length*120);
+    if(state.runes.length===3){setFlag("caveDone");say("List, vlna, hvězda! Jeskyní zazářilo světlo a otevřel se jantarový podstavec.");}
+    else say("Znamení "+h.label+" se rozsvítilo. "+(state.runes.length===1?"Které patří druhé?":"Zbývá poslední znamení."));
+  }else{state.runes=[];keep();tone(170);say("Kámen temně zaduněl. Znamení zhasla. Zkus posloupnost od začátku.");}
+ }
+ else if(id==="amber"){if(!flag("amberFound")){setFlag("amberFound");add("jantar");say("Získal(a) jsi sluneční jantar. Už jen měsíční květ!");}else say("Podstavec je prázdný.");}
+ else if(id==="flower"){
+  if(flag("flowerTaken")){say("Měsíční květ už máš bezpečně uložený ve vaku.");}
+  else if(!flag("flowerAwake")){
+   if(selected==="voda"){replace("voda","lahvicka");selected=null;setFlag("flowerAwake");say("Květ se napil pramenité vody a rozvinul stříbrné okvětní lístky. Teď ho můžeš utrhnout.");tone(750);}
+   else if(selected)use();else say("Měsíční květ je zavřený. Potřebuje doušek čisté vody.");}
+  else{setFlag("flowerTaken");add("kvet");say("Něžně jsi utrhl(a) měsíční květ. Ve svatyni čeká oltář.");}
+ }
+ else if(id==="gate"){say("Vysokou bránu zdobí slunce a měsíc. Otevírá se cestou ze zahrady.");}
+ else if(id==="altar"){
+  if(selected==="jantar"&&!flag("altarAmber")){remove("jantar");setFlag("altarAmber");selected=null;say("Sluneční jantar zapadl do levé misky oltáře. Chybí ještě dar měsíce.");tone(710);}
+  else if(selected==="kvet"&&!flag("altarFlower")){remove("kvet");setFlag("altarFlower");selected=null;say("Měsíční květ se položil do pravé misky oltáře. Chybí ještě dar slunce.");tone(790);}
+  else if(selected)use();
+  else say("Na oltáři jsou dvě prohlubně: zlatá jako slunce a stříbrná jako měsíc. Potřebuje oba dary.");
+  if(flag("altarAmber")&&flag("altarFlower")&&!state.won){state.won=true;keep();$("#victory").hidden=false;tone(910);}
+ }
+ else say(h.label+": "+(h.desc||"Tady nic užitečného nevidíš."));
+ ui();
+}
+const hotspot=(id,label,x,y,w,h,extra={})=>({id,label,x,y,w,h,...extra});
+function hotspots(){
+ const p=(go,label,x,y,w,h)=>hotspot("go_"+go,"➜ "+label,x,y,w,h,{go,portal:true});
+ switch(state.room){
+ case "nadvori":return [p("haj","Šeptající háj",12,140,122,305),p("potok","Stříbrný potok",822,170,130,280),hotspot("elder","Strážce",430,275,105,170),hotspot("fountain","Fontána",620,270,200,190),...(!flag("vialFound")?[hotspot("lahvicka","Lahvička na lavici",195,383,115,65)]:[])];
+ case "haj":return [p("jeskyne","Jeskyně ozvěn",10,150,150,280),p("nadvori","Nádvoří",812,195,140,255),p("ruiny","Zapomenuté ruiny",395,98,180,198),hotspot("tree","Prastarý dub",585,155,130,290),...(!flag("herbFound")?[hotspot("herb","Lesní bylina",215,375,112,80)]:[])];
+ case "potok":return [p("nadvori","Nádvoří",10,300,155,165),p("zahrada","Brána zahrady",827,145,125,285),hotspot("fairy","Říční víla",625,240,145,195),hotspot("stone","Potok",225,342,285,118)];
+ case "ruiny":return [p("haj","Šeptající háj",795,325,154,150),hotspot("book","Kamenná kronika",570,345,150,110),hotspot("owl","Moudrá sova",685,200,112,155),...(!flag("keyFound")?[hotspot("key","Měděný klíč",270,392,92,55)]:[])];
+ case "jeskyne":return [p("haj","Šeptající háj",5,318,180,168),...(!has("prach")?[hotspot("dark","Temná chodba",260,90,520,380)]:[hotspot("rune","List",244,230,115,128,{rune:"list"}),hotspot("rune","Vlna",425,218,115,128,{rune:"vlna"}),hotspot("rune","Hvězda",607,230,115,128,{rune:"hvezda"}),...(flag("caveDone")&&!flag("amberFound")?[hotspot("amber","Sluneční jantar",465,385,105,80)]:[])])];
+ case "zahrada":return [p("potok","Stříbrný potok",12,330,153,150),p("svatyne","Svatyně jitra",816,160,133,295),...(!flag("flowerTaken")?[hotspot("flower",flag("flowerAwake")?"Rozkvetlý měsíční květ":"Měsíční květ",410,332,140,115)]:[])];
+ case "svatyne":return [p("zahrada","Měsíční zahrada",8,325,165,153),hotspot("altar","Oltář jitra",368,260,236,210)];
+ default:return [];
+ }
+}
+function ui(){
+ $("#sceneTitle").textContent=TITLES[state.room];
+ const inv=$("#inventory");inv.replaceChildren();
+ if(!state.items.length){const e=document.createElement("span");e.id="empty";e.textContent="Zatím prázdný. Prozkoumej okolí.";inv.append(e);}
+ state.items.forEach((id,i)=>{const b=document.createElement("button");b.className="item"+(selected===id?" active":"");b.title=ITEM[id].hint;b.setAttribute("aria-pressed",String(selected===id));b.innerHTML='<span class="emoji" aria-hidden="true">'+ITEM[id].icon+'</span><small>'+ITEM[id].name+'</small>';b.addEventListener("click",()=>choose(id));inv.append(b);});
+ const q=$("#quick");q.replaceChildren();
+ hotspots().forEach(h=>{let b=document.createElement("button");b.className=h.portal?"portal":"";b.textContent=h.label;b.addEventListener("click",()=>action(h));q.append(b);});
+ $("#spotsBtn").style.color=showSpots?"#ffe293":"";
+ $("#soundBtn").textContent=sound?"♪":"♪̸";
+}
+function action(h){if(!started)return;hero.target=Math.max(175,Math.min(795,h.x+h.w/2));hero.walk=()=>doAction(h);hover=null;}
+function pointer(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};}
+function inRect(p,h){return p.x>=h.x&&p.x<=h.x+h.w&&p.y>=h.y&&p.y<=h.y+h.h;}
+function hit(p){return hotspots().slice().reverse().find(h=>inRect(p,h));}
+let pressed=null,held=false,longTimer=null;
+canvas.addEventListener("pointerdown",e=>{if(!started)return;e.preventDefault();let p=pointer(e);pressed={x:p.x,y:p.y,time:Date.now()};held=false;const h=hit(p);clearTimeout(longTimer);longTimer=setTimeout(()=>{if(pressed&&h){held=true;say(h.desc||("Prohlížíš: "+h.label+"."));tone(260);}},550);});
+canvas.addEventListener("pointerup",e=>{clearTimeout(longTimer);if(!pressed||!started)return;const p=pointer(e);let moved=Math.hypot(p.x-pressed.x,p.y-pressed.y);pressed=null;if(held||moved>35)return;const h=hit(p);if(h)action(h);else say(selected?"Na tomto místě předmět použít nelze.":"Nic zajímavého tady není. Prohlédni si označená místa.");});
+canvas.addEventListener("pointercancel",()=>{clearTimeout(longTimer);pressed=null;});
+canvas.addEventListener("pointermove",e=>{if(e.pointerType==="mouse")hover=hit(pointer(e));});
+canvas.addEventListener("pointerleave",()=>{hover=null;});
+$("#helpBtn").onclick=()=>{$("#help").hidden=false;};$("#closeHelp").onclick=()=>{$("#help").hidden=true;};
+$("#spotsBtn").onclick=()=>{showSpots=!showSpots;ui();};
+$("#soundBtn").onclick=()=>{sound=!sound;ui();tone(750);};
+$("#fullBtn").onclick=()=>{const root=$("#app");if(document.fullscreenElement){document.exitFullscreen?.();}else root.requestFullscreen?.().catch(()=>say("Celou obrazovku tento prohlížeč nepovolil."));};
+$("#restartBtn").onclick=()=>{if(confirm("Opravdu smazat uložený postup a začít od začátku?")){restart();$("#help").hidden=true;}};
+$("#winNew").onclick=()=>{restart();$("#victory").hidden=true;};
+$("#winClose").onclick=()=>{$("#victory").hidden=true;};
+function restart(){state=fresh();selected=null;started=true;enter("nadvori");say("Nové dobrodružství začíná. Prohlédni si lavici a fontánu!");}
+$("#startBtn").onclick=()=>{$("#welcome").hidden=true;restart();};
+$("#continueBtn").onclick=()=>{$("#welcome").hidden=true;state=stored()||fresh();selected=null;started=true;enter(state.room);if(state.won)$("#victory").hidden=false;};
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){$("#help").hidden=true;selected=null;ui();}if(!started)return;if(e.key>="1"&&e.key<="9"){let id=state.items[Number(e.key)-1];if(id)choose(id);}if(e.key.toLowerCase()==="h"){$("#help").hidden=!$("#help").hidden;}});
+function box(x,y,w,h,color){c.fillStyle=color;c.fillRect(x,y,w,h);}
+function path(points,fill,stroke=null,lw=1){c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=lw;c.stroke();}}
+function ell(x,y,rx,ry,fill){c.beginPath();c.ellipse(x,y,Math.max(.01,rx),Math.max(.01,ry),0,0,Math.PI*2);c.fillStyle=fill;c.fill();}
+function circle(x,y,r,fill){c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fillStyle=fill;c.fill();}
+function line(x1,y1,x2,y2,color,w=2){c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.lineWidth=w;c.strokeStyle=color;c.stroke();}
+function grad(a,b){let g=c.createLinearGradient(0,0,0,H);g.addColorStop(0,a);g.addColorStop(1,b);box(0,0,W,H,g);}
+function mountains(color="#30485b"){path([[0,320],[130,185],[226,280],[350,130],[490,280],[630,157],[740,264],[875,168],[960,260],[960,540],[0,540]],color);}
+function cloud(x,y,s=1){ell(x,y,63*s,14*s,"#cfd6d683");ell(x-22*s,y-7*s,28*s,18*s,"#cfd6d683");ell(x+18*s,y-12*s,38*s,22*s,"#dfe3e38a");}
+function trees(x,y,sc=1,night=false){c.save();c.translate(x,y);c.scale(sc,sc);box(-14,-144,28,170,night?"#322d38":"#59412f");line(0,-120,-37,-173,night?"#453c42":"#644a35",9);line(0,-95,39,-166,night?"#453c42":"#644a35",8);let col=night?"#244546":"#245644";for(let [xx,yy,rr] of [[-36,-179,53],[35,-194,49],[0,-212,69],[25,-160,57],[-45,-153,48]]){circle(xx,yy,rr,col);circle(xx-9,yy-12,rr*.65,night?"#2d5654":"#307454");circle(xx+10,yy+8,rr*.49,night?"#233f41":"#1c4d40");}c.restore();}
+function flower(x,y,k=1,shade="#e3a2be"){line(x,y,x,y+24*k,"#327e5c",3*k);for(let i=0;i<5;i++){let a=i*Math.PI*2/5;ell(x+Math.cos(a)*9*k,y+Math.sin(a)*9*k,7*k,7*k,shade);}circle(x,y,5*k,"#ffe6a1");}
+function rock(x,y,w=90,h=40){path([[x-w/2,y],[x-w*.43,y-h*.62],[x-w*.12,y-h],[x+w*.35,y-h*.7],[x+w/2,y],[x-w/2,y]],"#697681","#344956",3);}
+function grasses(){for(let x=0;x<960;x+=23){let t=Math.sin(x*2.4)*6;line(x,475,x-5+t,462-t,"#395e40",2);line(x+6,474,x+14,458+t,"#4d7454",2);}}
+function ground(col1="#2c5841",col2="#193d36"){box(0,395,960,145,col1);path([[0,450],[100,432],[220,467],[340,428],[485,470],[575,420],[690,465],[830,430],[960,450],[960,540],[0,540]],col2);grasses();}
+function arch(x,y,w=150,h=270,fill="#1b2831",frame="#827765"){box(x-16,y-14,w+32,h+20,frame);box(x,y,w,h,fill);circle(x+w/2,y+21,w/2,fill);}
+function bricks(x,y,w,h){box(x,y,w,h,"#6d746e");for(let yy=y+12;yy<y+h;yy+=28){line(x,yy,x+w,yy,"#46565c",3);for(let xx=x+(Math.floor((yy-y)/28)%2?0:27);xx<x+w;xx+=56)line(xx,yy,xx,yy-27,"#45535a",2);}}
+function water(){path([[0,412],[160,380],[390,395],[600,360],[960,390],[960,540],[0,540]],"#2e8296");for(let i=0;i<20;i++){let x=(i*97+42)%960,y=396+(i*37)%150;line(x,y,x+45,y-2,"#a1d8ca99",2);}}
+function spark(x,y,t=0,r=6){let p=.5+.5*Math.sin(t/420+x);c.save();c.globalAlpha=.35+.65*p;line(x-r,y,x+r,y,"#ffebb7",2);line(x,y-r,x,y+r,"#ffebb7",2);circle(x,y,2.5,"#fff1c8");c.restore();}
+function drawNadvori(){
+ grad("#536f92","#cda66b");cloud(180,95,1.3);cloud(650,72,.9);mountains("#657480");ground("#536247","#435341");
+ bricks(0,215,235,265);bricks(740,200,220,270);
+ box(180,115,590,270,"#9a9180");bricks(180,115,590,270);
+ for(let i=0;i<5;i++)box(195+i*112,82,61,53,"#a39a8a");
+ arch(345,202,224,217,"#152e37","#726f6b");circle(458,225,94,"#1a3440");box(405,282,110,138,"#172c35");
+ path([[300,410],[608,410],[785,540],[165,540]],"#9c9077");for(let i=0;i<9;i++)line(260+i*44,492,235+i*49,540,"#766c5d",2);
+ // bench and bottle
+ box(175,398,165,18,"#796047");box(190,415,12,46,"#60452e");box(316,415,12,46,"#60452e");
+ if(!flag("vialFound")){box(246,372,29,35,"#77d6e4aa");box(252,363,16,9,"#e6d4b6");spark(260,383,tick,7);}
+ // fountain
+ ell(718,430,124,40,"#404e5a");ell(718,420,112,34,"#a3a095");ell(718,414,92,24,"#539aac");box(706,320,24,88,"#a0a094");ell(718,316,48,20,"#a5a295");line(718,315,718,360,"#b9ecdf",4);circle(716,305,10,"#e6edce");
+ // guardian
+ line(478,340,473,410,"#422f38",16);line(478,344,506,399,"#423640",12);line(477,344,452,406,"#44333b",12);
+ path([[454,322],[494,318],[516,396],[444,396]],"#5b435d");circle(476,301,19,"#e3b591");path([[457,290],[474,272],[495,289]],"#d3d5c9");line(507,331,507,434,"#b89b63",5);
+}
+function drawHaj(){
+ grad("#254d66","#9bb685");cloud(805,66,.9);mountains("#3a5c68");ground("#2f6245","#20483a");
+ for(let [x,s] of [[70,1.7],[280,1.18],[655,1.48],[890,1.85]])trees(x,430,s);
+ path([[310,540],[408,340],[475,340],[595,540]],"#a29170");
+ // central stone ruin portal
+ rock(474,312,184,63);arch(418,188,107,144,"#151f2a","#657169");line(462,234,479,239,"#96a58c",2);
+ for(let i=0;i<18;i++){let x=18+i*57,y=420+(i*17)%80;flower(x,y,.55,i%2?"#cad0e8":"#e9d1a0");}
+ // herb
+ if(!flag("herbFound")){for(let i=0;i<5;i++){line(263,444,245+i*9,404+(i%2)*13,"#8cc978",3);ell(248+i*9,409+(i%2)*13,13,6,"#c2e9a6");}spark(267,420,tick,9);}
+ // cave at left
+ path([[0,420],[0,199],[49,145],[138,208],[166,425]],"#414c4f");arch(23,264,94,158,"#0f1b25","#4b5556");
+ // old oak details
+ line(655,327,628,350,"#d0ba7c",4);
+}
+function drawPotok(){
+ grad("#2e637c","#d0bd8c");cloud(245,95,1.1);mountains("#54756e");ground("#3d7457","#265545");water();
+ for(let [x,s] of [[58,1.7],[285,.9],[894,1.6]])trees(x,402,s);
+ path([[0,480],[0,422],[170,417],[270,448],[430,463],[600,442],[960,465],[960,540]],"#316c62");
+ rock(397,423,165,53);rock(775,400,149,40);
+ // bridge
+ path([[430,406],[540,404],[635,443],[532,455]],"#786953");for(let i=0;i<5;i++)line(445+i*35,409,445+i*34,458,"#4f463c",2);
+ // fairy
+ ell(692,349,26,47,"#7dc5bf88");path([[672,339],[692,309],[719,345],[709,390],[671,389]],"#74b7b6");circle(693,304,18,"#f5c5b4");path([[674,299],[684,280],[712,294],[715,303]],"#e8e1ad");ell(663,321,24,44,"#b2e8d285");ell(724,320,23,43,"#b2e8d285");spark(697,271,tick);
+ // garden gate
+ bricks(826,208,134,196);arch(858,232,73,177,"#1d333b","#877b6d");line(895,270,895,396,"#a5a7a1",5);circle(898,348,7,flag("gardenOpen")?"#8fd3a6":"#e9c37c");
+}
+function drawRuiny(){
+ grad("#493f68","#c8a28a");mountains("#635878");ground("#474f43","#303d38");
+ for(let [x,s] of [[75,1.5],[890,1.3]])trees(x,420,s,true);
+ bricks(192,245,160,190);bricks(554,220,119,185);bricks(734,265,135,130);
+ box(166,203,202,36,"#95908a");box(539,179,148,33,"#9b9995");
+ for(let i=0;i<6;i++)rock(i*190+50,482,100,37);
+ // broken arch
+ arch(382,210,140,180,"#6d6570","#847e7a");box(403,274,98,120,"#35404d");circle(446,263,48,"#35404d");
+ // book
+ path([[580,390],[618,362],[658,391],[658,429],[619,407],[579,430]],"#d7cba0","#514438",3);
+ line(619,367,619,407,"#5e513d",3);spark(620,383,tick,7);
+ // key
+ if(!flag("keyFound")){circle(294,418,11,"#d8ac64");circle(294,418,5,"#484a43");line(306,418,336,418,"#d8ac64",5);line(328,418,328,427,"#d8ac64",4);spark(316,411,tick,7);}
+ // owl
+ ell(734,301,24,32,"#8c725e");circle(724,290,10,"#cbb18c");circle(743,290,10,"#cbb18c");circle(725,291,4,"#1c2731");circle(743,291,4,"#1c2731");path([[732,298],[741,303],[730,308]],"#e6b968");
+}
+function drawJeskyne(){
+ grad("#101825","#263643");path([[0,0],[960,0],[960,538],[0,538]],"#141c28");for(let i=0;i<14;i++){let x=i*89-35;path([[x,0],[x+58,0],[x+30,56+(i*39)%140]],"#2e3947");}
+ path([[0,450],[100,320],[165,348],[245,286],[365,354],[520,299],[690,353],[840,303],[960,415],[960,540],[0,540]],"#303b49");
+ for(let i=0;i<10;i++)rock(i*111+21,495,134,45);
+ arch(2,305,169,210,"#1c3036","#405055");
+ if(has("prach")){let halo=c.createRadialGradient(490,280,20,490,280,450);halo.addColorStop(0,"#5d9da647");halo.addColorStop(1,"#13172200");box(0,0,W,H,halo);
+  for(let [x,y,t] of [[295,295,"☘"],[483,288,"≈"],[665,294,"★"]]){box(x-43,y-48,90,105,"#62717a");box(x-36,y-41,76,91,"#384552");c.font="bold 64px Georgia";c.textAlign="center";c.fillStyle="#b9ddd4";c.fillText(t,x,y+20);}
+  for(let i=0;i<state.runes.length;i++)spark([295,483,665][i],223,tick+100*i,11);
+  if(flag("caveDone")){box(467,428,96,40,"#897e70");circle(514,397,24,flag("amberFound")?"#555e60":"#e29f43");if(!flag("amberFound"))spark(514,393,tick,16);}
+ }else{box(170,0,790,540,"#080c14e0");c.font="bold 30px Georgia";c.textAlign="center";c.fillStyle="#91a5ab";c.fillText("V jeskyni panuje kouzelná tma.",540,220);}}
+function drawZahrada(){
+ grad("#122944","#5a658e");circle(795,91,46,"#e9e7c1");ell(780,96,14,37,"#f2eccc44");mountains("#304662");ground("#285a53","#214543");
+ for(let [x,s] of [[75,1.5],[300,1.1],[885,1.6]])trees(x,423,s,true);
+ for(let x=110;x<850;x+=75){box(x,315,8,110,"#82928f");line(x-10,329,x+10,329,"#abb5a8",3);}line(100,315,870,315,"#a1ada0",5);
+ path([[375,470],[425,395],[520,395],[585,470]],"#8d8c81");
+ for(let i=0;i<21;i++){let x=25+i*49,y=445+(i%3)*21;flower(x,y,.9,i%2?"#d7b4e1":"#a6d5e7");}
+ // flower
+ if(!flag("flowerTaken")){line(479,405,479,448,"#8cdbbe",6);for(let a=0;a<7;a++){let ang=a*Math.PI*2/7;ell(479+Math.cos(ang)*(flag("flowerAwake")?27:10),390+Math.sin(ang)*(flag("flowerAwake")?27:8),flag("flowerAwake")?21:11,flag("flowerAwake")?15:9,"#d5d1ef");}circle(479,390,12,"#f7e4a3");spark(479,366,tick,9);}
+ // temple door
+ bricks(792,193,168,265);arch(831,223,91,223,"#1f2e41","#a2a094");line(876,238,875,420,"#b4a98e",3);
+}
+function drawSvatyne(){
+ grad("#222b4b","#8b7287");mountains("#474d6c");ground("#354850","#273b46");
+ bricks(0,150,260,330);bricks(704,150,256,330);bricks(240,70,482,275);
+ arch(295,157,367,273,"#16263b","#9b998c");circle(480,207,117,"#425a6d");circle(480,207,105,"#a9a38a");circle(480,207,84,"#3b5265");for(let i=0;i<12;i++){let a=i*Math.PI/6;line(480+Math.cos(a)*76,207+Math.sin(a)*76,480+Math.cos(a)*105,207+Math.sin(a)*105,"#c6bb9a",5);}
+ path([[0,525],[384,377],[583,377],[960,525]],"#8b827b");
+ box(384,374,197,77,"#a19580");box(407,328,153,55,"#b9a88e");box(431,301,105,35,"#c7b18d");
+ ell(446,319,29,11,flag("altarAmber")?"#f6b647":"#494954");ell(527,319,29,11,flag("altarFlower")?"#f0c6dc":"#494954");
+ if(flag("altarAmber"))spark(446,301,tick,11);if(flag("altarFlower"))spark(527,301,tick+200,11);
+ if(state.won){let g=c.createRadialGradient(490,242,10,490,242,395);g.addColorStop(0,"#fff1adbb");g.addColorStop(1,"#ffe09100");box(0,0,W,H,g);for(let i=0;i<25;i++)spark(50+i*37,(i*51)%420,tick+i*60,7);}
+}
+function drawHero(){
+ let x=hero.x,step=Math.sin(tick/95)*3;
+ ell(x,469,35,8,"#152b2c99");
+ // backpack, shoes, cloak
+ line(x-12,432,x-13,461,"#40323f",11);line(x+10,432,x+12,461,"#40323f",11);
+ path([[x-18,370],[x+14,368],[x+31,445],[x-29,445]],"#214d65");
+ path([[x-20,370],[x-13,437],[x+11,434],[x+18,372]],"#d9be8d");
+ circle(x,348+step,20,"#e8ba97");path([[x-21,347],[x-12,320],[x+9,323],[x+20,347],[x+10,335],[x-12,335]],"#5b4136");
+ circle(x+8,348+step,2,"#26313e");
+ line(x-19,382,x-36,417,"#d4b196",9);line(x+17,382,x+28,417,"#d4b196",9);
+}
+function drawFrame(ts){
+ if(!last)last=ts;let dt=Math.min(48,ts-last);last=ts;tick+=dt;
+ if(started){let dx=hero.target-hero.x;if(Math.abs(dx)>2){hero.x+=Math.sign(dx)*Math.min(Math.abs(dx),dt*.72);}else if(hero.walk){let a=hero.walk;hero.walk=null;a();}}
+ switch(state.room){case"nadvori":drawNadvori();break;case"haj":drawHaj();break;case"potok":drawPotok();break;case"ruiny":drawRuiny();break;case"jeskyne":drawJeskyne();break;case"zahrada":drawZahrada();break;case"svatyne":drawSvatyne();break;}
+ if(started)drawHero();
+ let hs=hotspots();
+ for(let h of hs){if(showSpots||h===hover){c.save();c.strokeStyle=h===hover?"#fff0b1":"#e1d899b3";c.lineWidth=h===hover?4:2;c.setLineDash([9,7]);c.strokeRect(h.x+4,h.y+4,h.w-8,h.h-8);c.restore();}
+ if(h.portal){let xx=h.x+h.w/2, yy=Math.min(437,h.y+h.h-43);c.save();c.globalAlpha=.55+.3*Math.sin(tick/450);c.font="bold 35px system-ui";c.textAlign="center";c.strokeStyle="#122832";c.lineWidth=5;c.strokeText(h.go==="haj"||h.go==="jeskyne"||h.go==="nadvori"&&h.x<200||h.go==="potok"&&h.x<200||h.go==="zahrada"&&h.x<200?"◀":"➤",xx,yy);c.fillStyle="#ffe3a4";c.fillText(h.go==="haj"||h.go==="jeskyne"||h.go==="nadvori"&&h.x<200||h.go==="potok"&&h.x<200||h.go==="zahrada"&&h.x<200?"◀":"➤",xx,yy);c.restore();}}
+ $("#hintLabel").textContent=hover?hover.label:"";
+ requestAnimationFrame(drawFrame);
+}
+const previous=stored();$("#continueBtn").hidden=!previous;
+ui();requestAnimationFrame(drawFrame);
+})();
+</script>
+</body>
+</html>
