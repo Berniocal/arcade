@@ -70,6 +70,7 @@ header a{color:#d2dce3;text-decoration:none;font-size:12px;flex:none}
 <button id="rightBtn" class="touchOnly" aria-pressed="false">✌ Pravý klik</button>
 <button id="spaceBtn">␣ Mezerník</button>
 <button id="enterBtn" class="quiet">↵ Enter</button>
+<button id="typeBtn" class="quiet">⌨ Text</button>
 <button id="escapeBtn" class="quiet">Esc</button>
 <button id="saveBtn">💾 Uložit stav</button>
 <span id="status">Hra ještě neběží.</span>
@@ -77,7 +78,7 @@ header a{color:#d2dce3;text-decoration:none;font-size:12px;flex:none}
 </div>
 <div id="help"><article><h2>Ovládání</h2>
 <p><b>Levý klik:</b> chůze, výběr nebo potvrzení. <b>Pravý klik:</b> nabídka akcí pro postavy a předměty (prohlédnout, vzít, mluvit, použít…). Klepnutím na „Pravý klik“ se další ťuknutí ve scéně provede pravým tlačítkem. Také můžeš podržet prst asi půl sekundy.</p>
-<p><b>Mezerník</b> přeskočí některé úvodní obrazovky, <b>Esc</b> zavírá nabídky. Herní nabídku Save/Restore vyvoláš najetím kurzoru k hornímu okraji hry. Po uložení v herním menu klepni na „Uložit stav“, aby se soubory zapsaly do prohlížeče.</p>
+<p><b>Mezerník</b> přeskočí některé úvodní obrazovky, <b>Esc</b> zavírá nabídky. Tlačítkem „⌨ Text“ lze zapsat název uložené pozice pomocí klávesnice telefonu. Herní nabídku Save/Restore vyvoláš najetím kurzoru k hornímu okraji hry. Po uložení v herním menu klepni na „Uložit stav“, aby se soubory zapsaly do prohlížeče.</p>
 <p>Původní hra může při prvním spuštění zobrazit protipirátskou kontrolu. Podle pokynů k freeware vydání ji obejdeš volbou <b>Restart</b> v horním herním menu.</p>
 <p>Data hry © Revolution Software Ltd. Zdroj freeware verze: <a href="https://www.scummvm.org/games/" target="_blank" rel="noopener">ScummVM Games</a>; licence je zahrnutá v herním archivu. Emulátor: <a href="https://js-dos.com/" target="_blank" rel="noopener">js-dos (GPL-2.0)</a>. Stránka nepoužívá cizí herní servery.</p>
 <button id="closeHelp">Vrátit se</button></article></div>
@@ -95,6 +96,14 @@ function key(code){if(ci){ci.simulateKeyPress(code);}else notify("Nejdřív spus
 $("spaceBtn").onclick=()=>key(32);
 $("escapeBtn").onclick=()=>key(256);
 $("enterBtn").onclick=()=>key(257);
+$("typeBtn").onclick=()=>{
+ if(!ci){notify("Nejdřív spusť hru.");return;}
+ const v=prompt("Napiš text pro hru (např. název uložené pozice):","");
+ if(v===null)return;
+ const chars=[...v.normalize("NFD").replace(/[\u0300-\u036f]/g,"")].filter(ch=>/[A-Za-z0-9 ._-]/.test(ch)).slice(0,40);
+ chars.forEach((ch,i)=>setTimeout(()=>ci?.simulateKeyPress(ch.charCodeAt(0)),i*85));
+ notify("Text předávám hře. Potvrď jej tlačítkem Enter.");
+};
 $("infoBtn").onclick=()=>{$("help").classList.add("visible");};
 $("closeHelp").onclick=()=>{$("help").classList.remove("visible");};
 $("fullBtn").onclick=()=>{if(document.fullscreenElement)document.exitFullscreen?.();else $("page").requestFullscreen?.().catch(()=>notify("Celou obrazovku prohlížeč nepovolil."));};
