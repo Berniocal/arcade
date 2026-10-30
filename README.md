@@ -1,6 +1,6 @@
 # Arcade
 
-Český rozcestník čtyř klasických her pro telefon i počítač.
+Český rozcestník pěti her pro telefon i počítač – čtyři retro klasiky a vlastní fantasy adventura.
 
 | Hra | Soubor | Hráči |
 | --- | --- | --- |
@@ -8,8 +8,9 @@
 | Pac-Man | `pacman.html` | Jeden hráč |
 | Arcade Volleyball | `volejbal.html` | Dva na jednom telefonu nebo proti PC, 3 obtížnosti |
 | Supaplex | `supaplex.html` | Jeden hráč, 111 původních úrovní |
+| Legenda o Jantarovém lese | `jantarovy-les.html` | Jeden hráč, česká point-and-click adventura se 7 lokacemi |
 
-Otevřete `index.html`. Hry se spouštějí ve stejné stránce a tlačítko „Všechny hry“ vrací rozcestník. Klepnutím na hodiny lze u každé hry napsat vlastní rychlost (čárka i tečka): Vlak 0,03–5 s na políčko, Pac-Man, Supaplex a míč ve volejbalu 0,1–3×. Hodnota se pamatuje v prohlížeči. Lze je otevřít také samostatně a stáhnout jako soběstačné HTML soubory. Fungují dotyková tlačítka, joystick i klávesnice. Volejbal: v ikoně soupeřů vyberte Kamarád / Počítač a lehkou, střední nebo těžkou obtížnost.
+Otevřete `index.html`. Hry se spouštějí ve stejné stránce a tlačítko „Všechny hry“ vrací rozcestník. Klepnutím na hodiny lze u čtyř akčních her napsat vlastní rychlost (čárka i tečka): Vlak 0,03–5 s na políčko, Pac-Man, Supaplex a míč ve volejbalu 0,1–3×. Hodnota se pamatuje v prohlížeči. Lze je otevřít také samostatně a stáhnout jako soběstačné HTML soubory. Čtyři akční hry používají dotyková tlačítka, joystick i klávesnici. Jantarový les používá ťukání na místa ve scéně nebo velká tlačítka s dostupnými akcemi pod obrazem; pro výběr předmětu slouží inventář. Ukládá se automaticky do prohlížeče a je hratelný offline bez cizích knihoven. Volejbal: v ikoně soupeřů vyberte Kamarád / Počítač a lehkou, střední nebo těžkou obtížnost.
 
 ## GitHub Pages
 
@@ -28,3 +29,7 @@ Supaplex: engine OpenSupaplex Sergia Padrina a přispěvatelů, https://github.c
 Pac-Man, volejbal i Supaplex mají v informacích úplnou licenci a ZIP kompletních preferovaných zdrojů včetně sestavení a testů. ZIP je vložený do HTML a dostupný i offline. Kopie GNU GPL v3 je v `LICENSE-GPL-3.0.txt`. Písmo uvnitř her Press Start 2P: Cody Boisclair, SIL OFL 1.1; licence je přímo ve hrách a zdrojových archivech.
 
 Rozcestník a mobilní úpravy 2026. Jednotlivé hry si ponechávají vlastní licence a autorské údaje.
+
+## Legenda o Jantarovém lese
+
+Originální krátká česká fantasy point-and-click adventura vytvořená přímo pro tento web; je inspirovaná atmosférou her typu *The Legend of Kyrandia*, ale nepoužívá její původní grafiku, zvuky, dialogy, příběh ani herní data. Je to **pocta žánru, nikoliv port původní hry Kyrandia**. Sedm propojených scén: nádvoří, háj, potok, ruiny, jeskyně, zahrada a svatyně. Hráč sbírá předměty, řeší hádanky, používá inventář, může zvýraznit aktivní místa, zapnout zvuky a využít celoobrazovkový režim. Funguje na dotykovém telefonu v orientaci na výšku i na šířku, na počítači také myší. Celá hra je obsažená v jediném souboru `jantarovy-les.html` a nepotřebuje síťové spojení. Autorská textová a kreslená podoba, bez externích herních assetů.
