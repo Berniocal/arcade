@@ -10,6 +10,7 @@
 :root{color-scheme:dark;--bg:#0c1118;--fg:#eee9d9;--gold:#ffd78d;--muted:#acb7c2}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden}
+[hidden]{display:none!important}
 button,a{-webkit-tap-highlight-color:transparent}button{font:inherit;cursor:pointer;touch-action:manipulation}
 button:focus-visible,a:focus-visible{outline:3px solid #ffc86c;outline-offset:2px}
 #page{height:100vh;height:100dvh;display:flex;flex-direction:column}
@@ -62,7 +63,7 @@ header a{color:#d2dce3;text-decoration:none;font-size:12px;flex:none}
 <button id="launch">▶ Spustit původní hru</button><p id="progress"></p>
 <p style="font-size:11px;color:#b8bec7">Hra je anglicky. Úplná freeware verze, žádná předělávka. Běží v DOSBoxu ve webovém prohlížeči; po prvním stažení potřebuje jádro emulátoru z externí služby js-dos.</p>
 </div></div>
-</div></div>
+</div>
 <div id="rotate">↻ Otočením telefonu na šířku zvětšíš herní scénu.</div>
 <div id="controls">
 <button id="leftBtn" class="touchOnly" aria-pressed="true">👆 Levý klik</button>
