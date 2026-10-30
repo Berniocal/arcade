@@ -143,6 +143,38 @@ class GestureJoystick {
 }
 if(typeof module!=='undefined')module.exports={GestureJoystick};
 
+/* Shared numeric speed editor. 2026. May be used under the host game's licence. */
+(function(root){
+'use strict';
+function parseSpeedValue(raw,min,max){
+ const text=String(raw).trim();
+ if(!/^(?:\d+(?:[.,]\d*)?|[.,]\d+)$/.test(text))return null;
+ const value=Number(text.replace(',','.'));
+ return Number.isFinite(value)&&value>=min&&value<=max?value:null;
+}
+function createSpeedEditor(o){
+ const format=v=>Number(v).toLocaleString('cs-CZ',{maximumFractionDigits:6,useGrouping:false});
+ if(!document.getElementById('speedEditorStyle')){
+  const style=document.createElement('style');style.id='speedEditorStyle';style.textContent=`.speed-editor{width:min(410px,calc(100% - 24px));max-height:88dvh;overflow:auto;padding:22px;border:1px solid #59616e;border-radius:12px;background:#15191f;color:#e5e8e7;font:14px system-ui,sans-serif;box-shadow:0 18px 55px #0009}.speed-editor::backdrop{background:#000b}.speed-editor header{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 20px;padding:0;min-height:0}.speed-editor h2{font:700 21px system-ui,sans-serif;letter-spacing:0;color:#f7d967;margin:0}.speed-editor .speed-close{display:flex;align-items:center;justify-content:center;padding:0;width:38px;height:38px;border:1px solid #424b57;border-radius:7px;background:#232933;color:#e5e8e7;font:25px system-ui,sans-serif;cursor:pointer}.speed-editor label{display:block;font:13px system-ui,sans-serif;color:#c7cfd9;margin-bottom:8px}.speed-editor .speed-field{display:flex;gap:10px;align-items:center}.speed-editor input{display:block;width:100%;min-width:0;padding:12px;background:#090d12;border:1px solid #69727f;border-radius:7px;color:#fff;font:24px ui-monospace,monospace;letter-spacing:normal;text-transform:none}.speed-editor .speed-unit{color:#aab5c2;font-size:13px;white-space:nowrap}.speed-editor p{font:12px/1.65 system-ui,sans-serif;color:#aeb9c6;margin:12px 0}.speed-editor .speed-error{color:#ffaaa3;min-height:20px;margin:7px 0;font-size:12px}.speed-editor .speed-presets{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0 18px}.speed-editor .speed-presets button{padding:9px 12px;background:#202832;border:1px solid #47515f;border-radius:6px;color:#d5dde6;font:13px system-ui,sans-serif;cursor:pointer}.speed-editor .speed-save{display:block;width:100%;padding:13px;border:1px solid #ffe787;border-radius:7px;background:#f7d967;color:#28230a;font:700 14px system-ui,sans-serif;cursor:pointer}.speed-editor button:focus-visible,.speed-editor input:focus-visible{outline:2px solid #f7d967;outline-offset:3px}`;document.head.append(style);
+ }
+ let dialog=document.getElementById('speedDialog');
+ if(!dialog){dialog=document.createElement('dialog');dialog.id='speedDialog';document.body.append(dialog);}
+ dialog.className='speed-editor';dialog.removeAttribute('open');dialog.setAttribute('aria-labelledby','speedTitle');
+ dialog.innerHTML='<header><h2 id="speedTitle"></h2><button class="speed-close" type="button" aria-label="Zavřít nastavení rychlosti">×</button></header><form novalidate><label for="speedValue"></label><div class="speed-field"><input id="speedValue" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-describedby="speedHelp speedError"><span class="speed-unit"></span></div><p id="speedHelp"></p><p id="speedError" class="speed-error" role="alert"></p><div class="speed-presets" role="group" aria-label="Rychlé předvolby"></div><button type="submit" class="speed-save">Použít</button></form>';
+ const input=dialog.querySelector('input'),form=dialog.querySelector('form'),error=dialog.querySelector('#speedError');let resume=false;
+ dialog.querySelector('h2').textContent=o.title;dialog.querySelector('label').textContent=o.label;dialog.querySelector('.speed-unit').textContent=o.unit;
+ dialog.querySelector('#speedHelp').textContent=o.help+' Rozsah '+format(o.min)+' až '+format(o.max)+'.';
+ function submit(e){e.preventDefault();const value=parseSpeedValue(input.value,o.min,o.max);if(value===null){error.textContent='Zadej číslo od '+format(o.min)+' do '+format(o.max)+'. Použij čárku nebo tečku.';input.setAttribute('aria-invalid','true');input.focus();return;}o.change(value);dialog.close();}
+ form.addEventListener('submit',submit);input.addEventListener('input',()=>{error.textContent='';input.removeAttribute('aria-invalid');});
+ for(const value of o.presets){const b=document.createElement('button');b.type='button';b.textContent=format(value)+(o.unit==='×'?'×':' s');b.addEventListener('click',()=>{input.value=format(value);form.requestSubmit();});dialog.querySelector('.speed-presets').append(b);}
+ dialog.querySelector('.speed-close').addEventListener('click',()=>dialog.close());
+ dialog.addEventListener('close',()=>{const restart=resume;resume=false;if(restart&&!document.hidden)o.resume();});
+ o.button.addEventListener('click',()=>{if(dialog.open)return;resume=!!o.running();o.prepare?.();if(resume)o.pause();input.value=format(o.value());error.textContent='';input.removeAttribute('aria-invalid');dialog.showModal();input.focus();input.select();});
+ return dialog;
+}
+if(typeof module!=='undefined'&&module.exports)module.exports={parseSpeedValue};else root.createSpeedEditor=createSpeedEditor;
+})(typeof window!=='undefined'?window:this);
+
 // Fit the 20 × 12 board, an 8 px frame and a 22 px score row.
 function fullscreenLayout(width,height){
   const gap=8,landscape=width>height;
@@ -171,13 +203,13 @@ const completed=new Set(Array.isArray(saved.completed)?saved.completed.filter(n=
 let levelIndex=Number.isInteger(saved.level)&&saved.level>=0&&saved.level<50?saved.level:0;
 let game,mode='ready',scoreBase=0,queue=[],lastStep=performance.now(),pauseFrom='running',dialogFrom=null,solutionMode=false,solutionPosition=0,gateOpenedAt=0,crashedAt=0;
 const TEMPOS=[600,300,166,110];
-let soundOn=saved.sound===true,stepMs=saved.speed===320?300:TEMPOS.includes(saved.speed)?saved.speed:166;
+let soundOn=saved.sound===true,stepMs=saved.speed===320&&saved.speedVersion!==2?300:Number.isFinite(saved.speed)&&saved.speed>=30&&saved.speed<=5000?saved.speed:166;
 let controlMode=saved.control==='joystick'?'joystick':'arrows',joystickPointer=null,joystickDirection=null;
 let audioContext=null;
 const audioBuffers={};
 const image=new Image();image.src=SPRITES;
 const names=['Krystal','Koruna','Strom','Jablko','Kráva','Třešně','Rybník','Žirafa','Zmrzlina','Dort','Počítač','Auto','Balón','Budík','Slon','Víno','Peníze','Letadlo','Lemming'];
-function persist(){try{localStorage.setItem('vlak1993-v1',JSON.stringify({level:levelIndex,completed:[...completed],speed:stepMs,sound:soundOn,control:controlMode}));}catch{}}
+function persist(){try{localStorage.setItem('vlak1993-v1',JSON.stringify({level:levelIndex,completed:[...completed],speed:stepMs,speedVersion:2,sound:soundOn,control:controlMode}));}catch{}}
 const ICON_PATHS={
  pause:'<path d="M8 5v14M16 5v14"/>',
  play:'<path d="m8 4 12 8-12 8Z"/>',
@@ -195,7 +227,7 @@ function icon(name){return `<svg viewBox="0 0 24 24" fill="none" stroke="current
 function toolIcon(id,name,label){const button=$(id);button.innerHTML=icon(name);button.setAttribute('aria-label',label);button.title=label;}
 function pauseUI(paused=false){toolIcon('pause',paused?'play':'pause',paused?'Pokračovat ve hře':'Pozastavit hru');}
 function soundUI(){toolIcon('sound',soundOn?'sound':'muted',soundOn?'Vypnout zvuk':'Zapnout zvuk');$('sound').setAttribute('aria-pressed',String(soundOn));}
-function speedUI(){const value=(stepMs/1000).toLocaleString('cs-CZ',{maximumFractionDigits:3});const label=`Tempo: ${value} s na políčko. Klepnutím změníš.`;$('speed').innerHTML=icon('timer')+`<span aria-hidden="true">${value}</span>`;$('speed').setAttribute('aria-label',label);$('speed').title=label;}
+function speedUI(){const value=(stepMs/1000).toLocaleString('cs-CZ',{maximumFractionDigits:3});const label=`Tempo: ${value} s na políčko. Klepnutím zadáš číslo.`;$('speed').innerHTML=icon('timer')+`<span aria-hidden="true">${value}</span>`;$('speed').setAttribute('aria-label',label);$('speed').title=label;}
 async function initAudio(){if(!soundOn)return;try{audioContext ||= new(window.AudioContext||window.webkitAudioContext)();await audioContext.resume();for(const [key,url] of Object.entries(SOUNDS)){if(!audioBuffers[key]){const b=Uint8Array.from(atob(url.split(',')[1]),c=>c.charCodeAt(0));audioBuffers[key]=await audioContext.decodeAudioData(b.buffer);}}}catch{}}
 function playSound(key){if(!soundOn||!audioContext||!audioBuffers[key])return;try{const s=audioContext.createBufferSource(),gain=audioContext.createGain();gain.gain.value=key==='step'?.12:.3;s.buffer=audioBuffers[key];s.connect(gain);gain.connect(audioContext.destination);s.start();}catch{}}
 function tile(index,x,y,target=ctx){target.drawImage(image,(index%20)*16,Math.floor(index/20)*16,16,16,x,y,16,16);}
@@ -317,7 +349,7 @@ joystick.addEventListener('pointermove',e=>{if(e.pointerId===joystickPointer){e.
 ['pointerup','pointercancel','lostpointercapture'].forEach(type=>joystick.addEventListener(type,e=>{if(e.pointerId===joystickPointer)resetJoystick();}));
 joystick.addEventListener('contextmenu',e=>e.preventDefault());
 $('controlMode').onclick=()=>chooseControl(controlMode==='arrows'?'joystick':'arrows');chooseControl(controlMode);
-$('speed').onclick=()=>{stepMs=TEMPOS[(TEMPOS.indexOf(stepMs)+1)%TEMPOS.length];lastStep=performance.now();speedUI();persist();};speedUI();
+createSpeedEditor({button:$('speed'),title:'Tempo Vlaku',label:'Čas na jedno políčko',unit:'s / políčko',min:.03,max:5,presets:[.6,.3,.166,.11],help:'Menší číslo znamená rychlejší vlak.',value:()=>stepMs/1000,change:v=>{stepMs=Math.round(v*1000);lastStep=performance.now();speedUI();persist();},running:()=>mode==='running',prepare:()=>{resetJoystick();queue=[];},pause:()=>{mode='speed-dialog';},resume:()=>{mode='running';lastStep=performance.now();}});speedUI();
 for(const [id,name,label] of [['restart','restart','Restartovat scénu'],['sceneButton','scenes','Vybrat scénu nebo zadat heslo'],['fullscreen','fullscreen','Celá obrazovka'],['download','download','Stáhnout HTML']])toolIcon(id,name,label);
 $('sound').onclick=()=>{soundOn=!soundOn;soundUI();persist();if(soundOn)initAudio().then(()=>playSound('collect'));};soundUI();
 const fs=$('fullscreen');
@@ -344,7 +376,7 @@ fs.onclick=async()=>{
 };
 document.addEventListener('keydown',e=>{
   const tag=e.target.tagName;if(['INPUT','SELECT','TEXTAREA'].includes(tag))return;
-  if($('sceneDialog').open)return;
+  if($('sceneDialog').open||$('speedDialog')?.open)return;
   if(e.key==='Escape'&&playArea.classList.contains('is-fullscreen')){e.preventDefault();exitFullscreenFallback();return;}
   const d={ArrowUp:'U',ArrowDown:'D',ArrowLeft:'L',ArrowRight:'R',w:'U',s:'D',a:'L',d:'R'}[e.key]||{W:'U',S:'D',A:'L',D:'R'}[e.key];
   if(d){e.preventDefault();if(!e.repeat)steer(d);return;}
