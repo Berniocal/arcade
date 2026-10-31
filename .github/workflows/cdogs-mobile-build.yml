@@ -48,6 +48,11 @@ jobs:
           assert marker in body, 'Upstream Emscripten linker options changed'
           flags = '     -sEXPORTED_RUNTIME_METHODS=FS,addRunDependency,removeRunDependency ' + slash + newline
           body = body.replace(marker, marker + flags)
+          # Newer upstream CMake builds include the base64 encoder for high
+          # scores; the old Emscripten shell script forgot this source file.
+          base_marker = '    src/json/*.c ' + slash + newline
+          assert base_marker in body
+          body = body.replace(base_marker, base_marker + '    src/base64/base64.c ' + slash + newline)
           # A WAD header incorrectly declares the same global variable in
           # every compilation unit. Make the declaration extern and define it
           # exactly once, to satisfy modern WebAssembly linker rules.
