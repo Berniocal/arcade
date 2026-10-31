@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="cs"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#10151e">
+<title>C-Dogs SDL · Arcade</title>
+<meta name="description" content="Původní open-source C-Dogs SDL se skutečnými kampaněmi a mobilním ovládáním.">
+<style>
+:root{color-scheme:dark;--bg:#090e15;--panel:#172330;--line:#415569;--gold:#ffda7e;--text:#f0eee4}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,Segoe UI,sans-serif}
+button,a{font:inherit;-webkit-tap-highlight-color:transparent}button{cursor:pointer;color:inherit;touch-action:none}button:focus-visible,a:focus-visible{outline:3px solid #ffe5a7;outline-offset:2px}
+#page{height:100vh;height:100dvh;display:flex;flex-direction:column;overscroll-behavior:none}
+header{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;height:44px;padding:4px max(10px,env(safe-area-inset-right)) 4px max(10px,env(safe-area-inset-left));background:#172331;border-bottom:1px solid #455565}
+header a{color:#d4e3ee;text-decoration:none;font-size:12px;white-space:nowrap}
+header h1{margin:0;font:bold clamp(14px,2.5vw,20px) Georgia,serif;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#headButtons{display:flex;gap:4px}
+#headButtons button{background:#2b4154;border:1px solid #637a8a;border-radius:7px;min-height:33px;min-width:34px}
+#arena{flex:1 1 auto;min-height:0;min-width:0;display:grid;grid-template-columns:clamp(98px,15vw,170px) minmax(0,1fr) clamp(108px,16vw,180px);gap:6px;padding:6px max(6px,env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left));align-items:center}
+.side{align-self:stretch;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:8px}
+#viewport{display:flex;align-items:center;justify-content:center;min-height:0;min-width:0;height:100%;width:100%;position:relative;background:#040508;border-radius:8px;border:2px solid #665a45;overflow:hidden}
+#screen{display:block;width:100%;height:100%;object-fit:contain;image-rendering:pixelated;outline:none;touch-action:none}
+#overlay{position:absolute;inset:0;z-index:4;display:flex;justify-content:center;align-items:center;background:linear-gradient(140deg,#243747f2,#090d17f9);padding:18px;text-align:center}
+#overlay[hidden]{display:none}
+#panel{max-width:420px}#panel h2{font:700 clamp(23px,3.5vw,35px) Georgia,serif;color:#ffe3a5;margin:0 0 12px}
+#panel p{margin:9px auto;color:#cdd5dc;line-height:1.55}
+#start{background:#9e773b;border:1px solid #edc37a;color:#fff9e5;padding:11px 18px;border-radius:10px;font-weight:800;min-height:45px;margin-top:11px}
+#message{display:block;font-size:12px;color:#f1d69a;min-height:22px;margin-top:12px}
+.pad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(45px,1fr));gap:4px;max-height:300px;width:100%;aspect-ratio:1/1}
+.pad .empty{pointer-events:none}
+.btn{border:1px solid #7890a0;border-radius:12px;background:linear-gradient(#38546a,#253b4f);font-size:clamp(15px,3vw,24px);font-weight:800;display:grid;place-items:center;user-select:none;min-height:48px;min-width:0;padding:3px}
+.btn[data-key]{touch-action:none}
+.btn:active,.btn.held{background:linear-gradient(#c28c43,#8d5c2b);border-color:#ffe1a0;color:#fff}
+.actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;align-content:center}
+.actions .btn{min-height:70px;display:flex;flex-direction:column;justify-content:center;gap:4px}
+.actions .btn span{font-size:clamp(10px,1.65vw,13px);font-weight:600}
+.actions .btn small{font-size:10px;color:#d6e3ee}
+.actions .primary{background:linear-gradient(#9f6339,#7c3f32)}
+#subcontrols{display:flex;gap:5px;justify-content:center;flex-wrap:wrap}
+#subcontrols button{flex:1;border:1px solid #455c70;background:#182d3e;border-radius:7px;min-height:35px;font-size:11px}
+#loading{height:4px;width:100%;background:#314457;border-radius:9px;overflow:hidden;margin-top:9px}
+#loading div{height:100%;width:0;background:#eac886;transition:width .2s}
+#status{background:#142332;border-top:1px solid #394b5a;color:#bac8d1;font-size:11px;padding:5px 12px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;flex:none;text-align:center}
+#help{position:fixed;inset:0;z-index:30;background:#05090de8;display:grid;place-items:center;padding:12px}
+#help[hidden]{display:none}
+#help article{max-width:590px;width:100%;max-height:95%;overflow:auto;border:1px solid #ba9765;background:#1a2b3c;border-radius:15px;padding:20px}
+#help h2{font:700 25px Georgia,serif;color:#f7dc9d;margin:0 0 10px}#help p{line-height:1.6}
+#help button{padding:10px 16px;background:#8f6536;border:1px solid #ccac74;border-radius:7px}
+@media(max-width:700px) and (orientation:landscape){header{height:34px}#arena{grid-template-columns:clamp(90px,18vw,130px) minmax(0,1fr) clamp(102px,18vw,132px);gap:3px;padding:2px 3px calc(2px + env(safe-area-inset-bottom))}.side{gap:3px}.pad{gap:2px;grid-template-rows:repeat(3,minmax(33px,1fr))}.btn{border-radius:9px;min-height:34px}.actions{gap:3px}.actions .btn{min-height:45px}.actions .btn span{font-size:10px}#subcontrols button{min-height:26px;font-size:10px}#status{font-size:10px;padding:2px}}
+@media(max-width:660px) and (orientation:portrait){#arena{grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,1fr) auto;gap:5px;align-items:stretch}#viewport{grid-column:1/-1;grid-row:1;max-height:calc(100dvh - 315px)}.side{grid-row:2}.pad{width:min(100%,180px);height:180px;grid-template-rows:repeat(3,1fr);margin:0 auto}.actions .btn{min-height:69px}#status{font-size:10px}#overlay{padding:11px}#panel h2{font-size:24px}#panel p{font-size:12px;margin:5px auto}#start{margin-top:4px}}
+@media(max-height:380px) and (orientation:landscape){.actions .btn{min-height:38px}.pad{max-height:205px}#subcontrols button{min-height:23px}.side{gap:2px}#arena{padding:1px}}
+</style></head>
+<body>
+<div id="page">
+<header><a href="./">← ARCADE</a><h1>✦ C-Dogs SDL</h1><div id="headButtons"><button id="saveBtn" title="Uložit postup">💾</button><button id="helpBtn" title="Návod a licence">?</button><button id="fullBtn" title="Celá obrazovka">⛶</button></div></header>
+<div id="arena">
+<aside class="side" aria-label="Pohyb">
+<div class="pad">
+<div class="empty"></div><button class="btn" data-key="ArrowUp" aria-label="Nahoru">▲</button><div class="empty"></div>
+<button class="btn" data-key="ArrowLeft" aria-label="Vlevo">◀</button><div class="empty"></div><button class="btn" data-key="ArrowRight" aria-label="Vpravo">▶</button>
+<div class="empty"></div><button class="btn" data-key="ArrowDown" aria-label="Dolů">▼</button><div class="empty"></div>
+</div></aside>
+<main id="viewport"><canvas id="screen" width="640" height="480" tabindex="0" aria-label="C-Dogs SDL – původní hra"></canvas>
+<div id="overlay"><div id="panel"><h2>C-Dogs SDL</h2><p>Originální C-Dogs s licencovanou grafikou, hudbou a kampaněmi. Pohyb ovládej vlevo, střelbu a zbraně vpravo.</p><button id="start">▶ Spustit C-Dogs</button><div id="loading"><div id="bar"></div></div><span id="message">První načtení herních dat může být delší.</span></div></div>
+</main>
+<aside class="side" aria-label="Akce"><div class="actions">
+<button class="btn primary" data-key="KeyX"><strong>✹</strong><span>STŘELBA</span><small>X</small></button>
+<button class="btn" data-key="KeyZ"><strong>↻</strong><span>ZBRAŇ</span><small>Z</small></button>
+<button class="btn" data-key="KeyS"><strong>●</strong><span>GRANÁT</span><small>S</small></button>
+<button class="btn" data-key="KeyA"><strong>▦</strong><span>MAPA</span><small>A</small></button>
+</div><div id="subcontrols"><button data-key="Enter">ENTER</button><button data-key="Escape">PAUZA</button></div></aside>
+</div><div id="status" role="status">Připraveno – spuštění vyžaduje stažení WebAssembly herních dat.</div>
+</div>
+<div id="help" hidden role="dialog" aria-modal="true"><article><h2>Ovládání C-Dogs SDL</h2>
+<p><b>Na šířku:</b> šipky vlevo, střelba X, změna zbraně Z, granát S, mapa A vpravo. Podržet lze několik tlačítek současně. Enter potvrzuje a v menu může také přidat hráče. Esc přeruší hru. Na počítači používej klávesnici.</p>
+<p><b>Uložení:</b> hra ukládá nastavení a průchod kampaněmi po dokončených misích. Tlačítko 💾 vynutí zápis souborů do úložiště prohlížeče. Nejde o uložení uprostřed rozehrané mise. Smazání dat webu smaže i postup.</p>
+<p><b>Originál a licence:</b> C-Dogs SDL 2.5.0, © Ronny Wester, Cong Xu a spoluautoři. Engine GPL-2.0 (části BSD); herní prostředky různě CC0, CC BY, CC BY-SA. První kampaně, grafika a pravidla jsou z upstream projektu. <a href="https://github.com/cxong/cdogs-sdl/tree/2.5.0" target="_blank" rel="noopener">Úplný zdroj hry</a> · <a href="https://github.com/cxong/cdogs-sdl/blob/2.5.0/doc/README_DATA.md" target="_blank" rel="noopener">licence dat</a> · <a href="https://github.com/Berniocal/arcade/tree/main" target="_blank" rel="noopener">mobilní webový adaptér</a>.</p>
+<button id="closeHelp">Zpět do hry</button></article></div>
+<script>
+"use strict";
+(()=>{
+ const $=id=>document.getElementById(id), status=$("status"), msg=$("message"), canvas=$("screen");
+ let started=false, ready=false, lastSave=0;
+ const keyInfo={
+  ArrowUp:["ArrowUp","ArrowUp",38],ArrowDown:["ArrowDown","ArrowDown",40],ArrowLeft:["ArrowLeft","ArrowLeft",37],ArrowRight:["ArrowRight","ArrowRight",39],
+  KeyX:["x","KeyX",88],KeyZ:["z","KeyZ",90],KeyS:["s","KeyS",83],KeyA:["a","KeyA",65],Enter:["Enter","Enter",13],Escape:["Escape","Escape",27]
+ };
+ let held=new Map(); const keyCount=new Map();
+ function say(text){status.textContent=text;if(!ready)msg.textContent=text;}
+ function emit(code,down){const inf=keyInfo[code];if(!inf)return;const e=new KeyboardEvent(down?"keydown":"keyup",{key:inf[0],code:inf[1],keyCode:inf[2],which:inf[2],bubbles:true,cancelable:true,repeat:false});
+  try{Object.defineProperty(e,"keyCode",{get:()=>inf[2]});Object.defineProperty(e,"which",{get:()=>inf[2]});}catch(_){}
+  document.dispatchEvent(e);
+ }
+ function press(code){let n=keyCount.get(code)||0;keyCount.set(code,n+1);if(n===0)emit(code,true);}
+ function release(code){let n=keyCount.get(code)||0;if(n<=1){keyCount.delete(code);if(n)emit(code,false);}else keyCount.set(code,n-1);}
+ function releaseAll(){for(const code of keyCount.keys())emit(code,false);keyCount.clear();held.clear();document.querySelectorAll(".held").forEach(b=>b.classList.remove("held"));}
+ document.querySelectorAll("[data-key]").forEach(b=>{
+  b.addEventListener("pointerdown",e=>{if(!started)return;e.preventDefault();b.setPointerCapture?.(e.pointerId);const code=b.dataset.key;held.set(e.pointerId,{code,b});b.classList.add("held");press(code);});
+  const up=e=>{let h=held.get(e.pointerId);if(h&&h.b===b){release(h.code);held.delete(e.pointerId);b.classList.remove("held");}};
+  b.addEventListener("pointerup",up);b.addEventListener("pointercancel",up);b.addEventListener("lostpointercapture",up);
+  b.addEventListener("contextmenu",e=>e.preventDefault());
+  b.addEventListener("click",e=>{if(e.detail===0&&started){press(b.dataset.key);setTimeout(()=>release(b.dataset.key),100);}});
+ });
+ function save(){if(!ready||!window.FS?.syncfs){say("Ukládání není připraveno.");return;}
+  say("Ukládám postup…");window.FS.syncfs(false,err=>{say(err?"Nepodařilo se uložit – "+err.message:"Nastavení a průchod kampaněmi uloženy v tomto prohlížeči.");lastSave=Date.now();});
+ }
+ $("saveBtn").onclick=save;
+ $("helpBtn").onclick=()=>{$("help").hidden=false;releaseAll();};
+ $("closeHelp").onclick=()=>{$("help").hidden=true;};
+ $("fullBtn").onclick=()=>{if(document.fullscreenElement)document.exitFullscreen?.();else $("page").requestFullscreen?.().catch(()=>say("Prohlížeč nepovolil celou obrazovku."));};
+ window.addEventListener("blur",releaseAll);document.addEventListener("visibilitychange",()=>{if(document.hidden){releaseAll();if(ready&&Date.now()-lastSave>15000)save();}});
+ window.addEventListener("pagehide",()=>{if(ready&&window.FS?.syncfs)window.FS.syncfs(false,()=>{});});
+ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("help").hidden){$("help").hidden=true;e.preventDefault();}});
+ canvas.addEventListener("touchstart",e=>e.preventDefault(),{passive:false});
+ canvas.addEventListener("contextmenu",e=>e.preventDefault());
+ const setProgress=p=>{$("bar").style.width=Math.max(0,Math.min(100,p))+"%";};
+ const moduleConfig={
+  canvas, noInitialRun:false,
+  locateFile:path=>"./cdogs-runtime/"+path,
+  print:(...a)=>console.info("[C-Dogs]",...a),
+  printErr:(...a)=>console.warn("[C-Dogs]",...a),
+  setStatus:s=>{if(s){say(s);const m=/(\d+)\s*\/\s*(\d+)/.exec(s);if(m)setProgress(+m[1]/+m[2]*100);}},
+  monitorRunDependencies:left=>{if(left>0)say("Načítám herní data… ("+left+")");},
+  preRun:[function(){
+   try{
+    const dir="/home/web_user";
+    FS.mkdirTree(dir);
+    FS.mount(IDBFS,{},dir);
+    addRunDependency("cdogs-idb");
+    FS.syncfs(true,err=>{
+     if(err)console.warn("Uložená data nelze načíst",err);
+     removeRunDependency("cdogs-idb");
+    });
+   }catch(e){console.warn("IndexedDB není dostupná",e);}
+  }],
+  onRuntimeInitialized:()=>{
+   ready=true;setProgress(100);$("overlay").hidden=true;say("C-Dogs je spuštěn. Ovládání vlevo / vpravo. 💾 uloží postup.");canvas.focus({preventScroll:true});
+  },
+  onAbort:why=>{$("overlay").hidden=false;msg.textContent="Chyba emulátoru: "+why; $("start").disabled=false;}
+ };
+ $("start").addEventListener("click",()=>{
+  if(started)return;started=true;$("start").disabled=true;say("Načítám původní C-Dogs SDL…");
+  window.Module=moduleConfig;
+  const script=document.createElement("script");script.src="./cdogs-runtime/index.js";script.async=true;
+  script.onerror=()=>{say("Nepodařilo se načíst herní engine. Zkontroluj soubory cdogs-runtime a připojení.");$("start").disabled=false;started=false;};
+  document.body.appendChild(script);
+ });
+})();
+</script>
+</body></html>
