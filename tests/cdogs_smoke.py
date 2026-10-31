@@ -21,7 +21,7 @@ with socketserver.TCPServer(("127.0.0.1", 0), Handler) as server:
     port = server.server_address[1]
     threading.Thread(target=server.serve_forever, daemon=True).start()
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, executable_path="/usr/bin/google-chrome", args=["--no-sandbox", "--disable-dev-shm-usage", "--autoplay-policy=no-user-gesture-required"])
+        browser = p.chromium.launch(headless=True, executable_path="/usr/bin/google-chrome", args=["--no-sandbox", "--disable-dev-shm-usage", "--enable-unsafe-swiftshader", "--autoplay-policy=no-user-gesture-required"])
         context = browser.new_context(viewport={"width": 844, "height": 390}, is_mobile=True, has_touch=True, device_scale_factor=1)
         page = context.new_page()
         errors = []
