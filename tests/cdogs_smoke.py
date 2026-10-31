@@ -20,7 +20,7 @@ with socketserver.TCPServer(("127.0.0.1", 0), Handler) as server:
     port = server.server_address[1]
     threading.Thread(target=server.serve_forever, daemon=True).start()
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage", "--autoplay-policy=no-user-gesture-required"])
+        browser = p.chromium.launch(headless=True, executable_path="/usr/bin/google-chrome", args=["--no-sandbox", "--disable-dev-shm-usage", "--autoplay-policy=no-user-gesture-required"])
         context = browser.new_context(viewport={"width": 844, "height": 390}, is_mobile=True, has_touch=True, device_scale_factor=1)
         page = context.new_page()
         errors = []
@@ -30,7 +30,7 @@ with socketserver.TCPServer(("127.0.0.1", 0), Handler) as server:
         assert page.locator('[data-key="ArrowLeft"]').count() == 1
         assert page.locator('[data-key="KeyX"]').count() == 1
         page.locator("#start").click()
-        page.wait_for_function("document.getElementById('overlay').hidden === true", timeout=180_000)
+        page.wait_for_function("document.getElementById('overlay').hidden === true", timeout=55_000)
         page.wait_for_timeout(5000)
         assert not errors, f"Browser errors after game launch: {errors}"
         assert page.evaluate("typeof Module.FS?.syncfs === 'function'"), "Persistent filesystem not exposed"
@@ -52,7 +52,7 @@ with socketserver.TCPServer(("127.0.0.1", 0), Handler) as server:
         page.wait_for_function("document.getElementById('status').textContent.includes('uloženy')", timeout=30_000)
         page.reload(wait_until="domcontentloaded")
         page.locator("#start").click()
-        page.wait_for_function("document.getElementById('overlay').hidden === true", timeout=180_000)
+        page.wait_for_function("document.getElementById('overlay').hidden === true", timeout=55_000)
         saved = page.evaluate("""
           () => {
             try { return new TextDecoder().decode(Module.FS.readFile('/persistent_data/cdogs-test-save.txt')); }
