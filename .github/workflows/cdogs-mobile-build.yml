@@ -68,6 +68,21 @@ jobs:
           assert '-sSTACK_SIZE=131072' in body
           body = body.replace('-sINITIAL_MEMORY=128mb', '-sINITIAL_MEMORY=256mb -sALLOW_MEMORY_GROWTH=1 -sMAXIMUM_MEMORY=1024mb')
           body = body.replace('-sSTACK_SIZE=131072', '-sSTACK_SIZE=1048576')
+          # Browser SDL reports zero-sized window events when the canvas is
+          # CSS-scaled. Never replace a valid 320x200 game framebuffer with 0x0.
+          grafx = Path("original/src/cdogs/grafx.c")
+          gfx = grafx.read_text()
+          mark = "if (!svec2i_is_equal(res, c->Res))"
+          assert mark in gfx
+          guard = """#ifdef __EMSCRIPTEN__
+	if (res.x <= 0 || res.y <= 0)
+	{
+		return;
+	}
+#endif
+	"""
+          gfx = gfx.replace(mark, guard + mark, 1)
+          grafx.write_text(gfx)
           script.write_text(body)
           PY
       - name: Keep only original freely licensed Ogre and BEM campaigns
