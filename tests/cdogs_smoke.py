@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import http.server
+import io
 import os
 from pathlib import Path
 import socketserver
@@ -33,17 +34,23 @@ with socketserver.TCPServer(("127.0.0.1", 0), Handler) as server:
         assert page.locator('[data-key="KeyX"]').count() == 1
         page.locator("#start").click()
         page.wait_for_function("document.getElementById('overlay').hidden === true", timeout=55_000)
-        page.wait_for_timeout(5000)
+        # Native C-Dogs mounts its own /persistent_data after onRuntimeInitialized.
+        page.wait_for_function("window.Module && Module.syncdone === 1", timeout=35_000)
+        print("GAME SYNC COMPLETE", flush=True)
+        image_path = ROOT / "cdogs-smoke-landscape.png"
+        colors = 0
+        for attempt in range(35):
+            data = page.locator("#screen").screenshot(path=str(image_path))
+            with Image.open(io.BytesIO(data)) as im:
+                colors = len(im.convert("RGB").getcolors(maxcolors=1_000_000) or [])
+            if colors > 12:
+                break
+            page.wait_for_timeout(1000)
         page.screenshot(path=str(ROOT / "cdogs-smoke-ui.png"))
-        page.locator("#screen").screenshot(path=str(ROOT / "cdogs-smoke-landscape.png"))
+        print("GAME PIXEL COLORS:", colors, "SYNC:",page.evaluate("Module.syncdone"), flush=True)
         assert not errors, f"Browser errors after game launch: {errors}"
         assert page.evaluate("typeof Module.FS?.syncfs === 'function'"), "Persistent filesystem not exposed"
-        image_path = ROOT / "cdogs-smoke-landscape.png"
-        page.locator("#screen").screenshot(path=str(image_path))
-        with Image.open(image_path) as im:
-            # A launched game menu has a meaningful variety of colors;
-            # a uniform canvas means that the launcher alone was loaded.
-            assert len(im.convert("RGB").getcolors(maxcolors=1_000_000) or []) > 12, "Canvas is blank/uniform after launch"
+        assert colors > 12, f"Canvas remained blank/uniform for 35s ({colors} colors)"
         page.evaluate("""
           () => { window.__observedKeys=[];
             document.addEventListener('keydown', e => window.__observedKeys.push(e.code), {capture:true}); }
@@ -57,6 +64,7 @@ with socketserver.TCPServer(("127.0.0.1", 0), Handler) as server:
         page.reload(wait_until="domcontentloaded")
         page.locator("#start").click()
         page.wait_for_function("document.getElementById('overlay').hidden === true", timeout=55_000)
+        page.wait_for_function("window.Module && Module.syncdone === 1", timeout=35_000)
         saved = page.evaluate("""
           () => {
             try { return new TextDecoder().decode(Module.FS.readFile('/persistent_data/cdogs-test-save.txt')); }
