@@ -1,0 +1,73 @@
+name: C-Dogs SDL — WebAssembly build (staging)
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/cdogs-mobile
+    paths:
+      - .github/workflows/cdogs-mobile-build.yml
+permissions:
+  contents: write
+jobs:
+  compile-and-verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - name: Checkout Arcade
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Checkout official C-Dogs SDL 2.5.0
+        uses: actions/checkout@v4
+        with:
+          repository: cxong/cdogs-sdl
+          ref: 2.5.0
+          path: original
+          persist-credentials: false
+      - name: Install native CMake build prerequisites
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake ninja-build libsdl2-dev libsdl2-mixer-dev libsdl2-image-dev libprotobuf-dev protobuf-compiler
+      - name: Set up Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.72
+      - name: Compile upstream game and data unchanged
+        run: |
+          cd original
+          bash make_emscripten.sh
+      - name: Stage runtime assets
+        shell: bash
+        run: |
+          mkdir -p cdogs-runtime
+          cp original/emscripten/index.js cdogs-runtime/index.js
+          cp original/emscripten/index.wasm cdogs-runtime/index.wasm
+          cp original/emscripten/index.data cdogs-runtime/index.data
+          cp original/COPYING cdogs-runtime/LICENSE-GPL-2.0.txt
+          cp original/doc/README_DATA.md cdogs-runtime/README-DATA.txt
+          test -s cdogs-runtime/index.js
+          test -s cdogs-runtime/index.wasm
+          test -s cdogs-runtime/index.data
+          file cdogs-runtime/index.wasm
+          sha256sum cdogs-runtime/index.*
+          du -h cdogs-runtime/*
+          # GitHub has a 100 MiB per-object limit.
+          test "$(stat -c%s cdogs-runtime/index.data)" -lt 100000000
+          # Runtime binary is Emscripten WASM format.
+          python3 - <<'PY'
+          from pathlib import Path
+          assert Path('cdogs-runtime/index.wasm').read_bytes()[:4] == b'\0asm'
+          js=Path('cdogs-runtime/index.js').read_text()
+          assert 'index.data' in js
+          print('C-Dogs static runtime validated')
+          PY
+      - name: Commit tested build only on staging branch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cdogs-runtime
+          if ! git diff --cached --quiet; then
+            git commit -m "Build original C-Dogs SDL 2.5.0 for browser"
+            git push origin HEAD:feature/cdogs-mobile
+          fi
