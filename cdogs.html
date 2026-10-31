@@ -119,21 +119,6 @@ header h1{margin:0;font:bold clamp(14px,2.5vw,20px) Georgia,serif;color:var(--go
   printErr:(...a)=>console.warn("[C-Dogs]",...a),
   setStatus:s=>{if(s){say(s);const m=/(\d+)\s*\/\s*(\d+)/.exec(s);if(m)setProgress(+m[1]/+m[2]*100);}},
   monitorRunDependencies:left=>{if(left>0)say("Načítám herní data… ("+left+")");},
-  preRun:[function(){
-   const fs=window.Module?.FS; const idbfs=fs?.filesystems?.IDBFS;
-   try{
-    if(!fs||!idbfs)throw Error("IDBFS není součástí sestavení.");
-    const dir="/home/web_user";
-    fs.mkdirTree(dir);
-    fs.mount(idbfs,{autoPersist:true},dir);
-    const token="cdogs-idb";
-    window.Module.addRunDependency(token);
-    fs.syncfs(true,err=>{
-     if(err)console.warn("Uložená data nelze načíst",err);
-     window.Module.removeRunDependency(token);
-    });
-   }catch(e){console.warn("IndexedDB není dostupná",e);}
-  }],
   onRuntimeInitialized:()=>{
    ready=true;setProgress(100);$("overlay").hidden=true;say("C-Dogs je spuštěn. Ovládání vlevo / vpravo. 💾 uloží postup.");canvas.focus({preventScroll:true});
   },
