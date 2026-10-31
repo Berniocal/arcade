@@ -47,7 +47,7 @@ with socketserver.TCPServer(("127.0.0.1", 0), Handler) as server:
         page.locator('[data-key="KeyX"]').tap()
         assert "KeyX" in page.evaluate("window.__observedKeys"), "Touch fire button did not send a keyboard event"
         # Check save-path roundtrip across reload.
-        page.evaluate("Module.FS.writeFile('/home/web_user/cdogs-test-save.txt', 'saved from browser')")
+        page.evaluate("Module.FS.writeFile('/persistent_data/cdogs-test-save.txt', 'saved from browser')")
         page.locator("#saveBtn").click()
         page.wait_for_function("document.getElementById('status').textContent.includes('uloženy')", timeout=30_000)
         page.reload(wait_until="domcontentloaded")
@@ -55,7 +55,7 @@ with socketserver.TCPServer(("127.0.0.1", 0), Handler) as server:
         page.wait_for_function("document.getElementById('overlay').hidden === true", timeout=180_000)
         saved = page.evaluate("""
           () => {
-            try { return new TextDecoder().decode(Module.FS.readFile('/home/web_user/cdogs-test-save.txt')); }
+            try { return new TextDecoder().decode(Module.FS.readFile('/persistent_data/cdogs-test-save.txt')); }
             catch(e) { return 'MISSING:' + e; }
           }
         """)
