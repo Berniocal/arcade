@@ -62,6 +62,12 @@ jobs:
           assert '\nint waderrno;\n' in wadh
           wad_header.write_text(wadh.replace('\nint waderrno;\n', '\nextern int waderrno;\n'))
           wad_src.write_text(wad_src.read_text() + '\nint waderrno = 0;\n')
+          # WebAssembly needs more than the old hardcoded 128 MiB limit on
+          # current 2.5.0; allow the original game to grow memory as needed.
+          assert '-sINITIAL_MEMORY=128mb' in body
+          assert '-sSTACK_SIZE=131072' in body
+          body = body.replace('-sINITIAL_MEMORY=128mb', '-sINITIAL_MEMORY=256mb -sALLOW_MEMORY_GROWTH=1 -sMAXIMUM_MEMORY=1024mb')
+          body = body.replace('-sSTACK_SIZE=131072', '-sSTACK_SIZE=1048576')
           script.write_text(body)
           PY
       - name: Keep only original freely licensed Ogre and BEM campaigns
