@@ -99,15 +99,15 @@ header h1{margin:0;font:bold clamp(14px,2.5vw,20px) Georgia,serif;color:var(--go
   b.addEventListener("contextmenu",e=>e.preventDefault());
   b.addEventListener("click",e=>{if(e.detail===0&&started){press(b.dataset.key);setTimeout(()=>release(b.dataset.key),100);}});
  });
- function save(){if(!ready||!window.FS?.syncfs){say("Ukládání není připraveno.");return;}
-  say("Ukládám postup…");window.FS.syncfs(false,err=>{say(err?"Nepodařilo se uložit – "+err.message:"Nastavení a průchod kampaněmi uloženy v tomto prohlížeči.");lastSave=Date.now();});
+ function save(){const fs=window.Module?.FS;if(!ready||!fs?.syncfs){say("Ukládání není připraveno.");return;}
+  say("Ukládám postup…");fs.syncfs(false,err=>{say(err?"Nepodařilo se uložit – "+err.message:"Nastavení a průchod kampaněmi uloženy v tomto prohlížeči.");lastSave=Date.now();});
  }
  $("saveBtn").onclick=save;
  $("helpBtn").onclick=()=>{$("help").hidden=false;releaseAll();};
  $("closeHelp").onclick=()=>{$("help").hidden=true;};
  $("fullBtn").onclick=()=>{if(document.fullscreenElement)document.exitFullscreen?.();else $("page").requestFullscreen?.().catch(()=>say("Prohlížeč nepovolil celou obrazovku."));};
  window.addEventListener("blur",releaseAll);document.addEventListener("visibilitychange",()=>{if(document.hidden){releaseAll();if(ready&&Date.now()-lastSave>15000)save();}});
- window.addEventListener("pagehide",()=>{if(ready&&window.FS?.syncfs)window.FS.syncfs(false,()=>{});});
+ window.addEventListener("pagehide",()=>{if(ready&&window.Module?.FS?.syncfs)window.Module.FS.syncfs(false,()=>{});});
  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("help").hidden){$("help").hidden=true;e.preventDefault();}});
  canvas.addEventListener("touchstart",e=>e.preventDefault(),{passive:false});
  canvas.addEventListener("contextmenu",e=>e.preventDefault());
@@ -120,14 +120,17 @@ header h1{margin:0;font:bold clamp(14px,2.5vw,20px) Georgia,serif;color:var(--go
   setStatus:s=>{if(s){say(s);const m=/(\d+)\s*\/\s*(\d+)/.exec(s);if(m)setProgress(+m[1]/+m[2]*100);}},
   monitorRunDependencies:left=>{if(left>0)say("Načítám herní data… ("+left+")");},
   preRun:[function(){
+   const fs=window.Module?.FS; const idbfs=fs?.filesystems?.IDBFS;
    try{
+    if(!fs||!idbfs)throw Error("IDBFS není součástí sestavení.");
     const dir="/home/web_user";
-    FS.mkdirTree(dir);
-    FS.mount(IDBFS,{},dir);
-    addRunDependency("cdogs-idb");
-    FS.syncfs(true,err=>{
+    fs.mkdirTree(dir);
+    fs.mount(idbfs,{autoPersist:true},dir);
+    const token="cdogs-idb";
+    window.Module.addRunDependency(token);
+    fs.syncfs(true,err=>{
      if(err)console.warn("Uložená data nelze načíst",err);
-     removeRunDependency("cdogs-idb");
+     window.Module.removeRunDependency(token);
     });
    }catch(e){console.warn("IndexedDB není dostupná",e);}
   }],
