@@ -140,5 +140,7 @@ jobs:
           git add cdogs-runtime
           if ! git diff --cached --quiet; then
             git commit -m "Build original C-Dogs SDL 2.5.0 for browser"
+            git fetch origin feature/cdogs-mobile
+            git rebase origin/feature/cdogs-mobile
             git push origin HEAD:feature/cdogs-mobile
           fi
