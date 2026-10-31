@@ -43,7 +43,11 @@ with socketserver.TCPServer(("127.0.0.1", 0), Handler) as server:
         for attempt in range(35):
             data = page.locator("#screen").screenshot(path=str(image_path))
             with Image.open(io.BytesIO(data)) as im:
-                colors = len(im.convert("RGB").getcolors(maxcolors=1_000_000) or [])
+                # Ignore CSS border, rounded corners and letterboxing:
+                # only pixels within the actual game image count.
+                w, h = im.size
+                interior = im.crop((int(w * .17), int(h * .14), int(w * .83), int(h * .86)))
+                colors = len(interior.convert("RGB").getcolors(maxcolors=1_000_000) or [])
             if colors > 12:
                 break
             page.wait_for_timeout(1000)
