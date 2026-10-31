@@ -48,11 +48,15 @@ jobs:
           assert marker in body, 'Upstream Emscripten linker options changed'
           flags = '     -sEXPORTED_RUNTIME_METHODS=FS,addRunDependency,removeRunDependency ' + slash + newline
           body = body.replace(marker, marker + flags)
-          # The original WAD library uses tentative definitions and needs the
-          # historical -fcommon behavior when linked by recent Clang.
-          compile_marker = '    -c ' + slash + newline
-          assert compile_marker in body
-          body = body.replace(compile_marker, compile_marker + '    -fcommon ' + slash + newline)
+          # A WAD header incorrectly declares the same global variable in
+          # every compilation unit. Make the declaration extern and define it
+          # exactly once, to satisfy modern WebAssembly linker rules.
+          wad_header = Path('original/src/cdogs/cwolfmap/wad/waderrno.h')
+          wad_src = Path('original/src/cdogs/cwolfmap/wad/waderrno.c')
+          wadh = wad_header.read_text()
+          assert '\nint waderrno;\n' in wadh
+          wad_header.write_text(wadh.replace('\nint waderrno;\n', '\nextern int waderrno;\n'))
+          wad_src.write_text(wad_src.read_text() + '\nint waderrno = 0;\n')
           script.write_text(body)
           PY
       - name: Keep only original freely licensed Ogre and BEM campaigns
