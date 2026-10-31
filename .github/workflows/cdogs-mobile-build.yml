@@ -77,6 +77,11 @@ jobs:
           if proprietary_mod_assets.exists(): shutil.rmtree(proprietary_mod_assets)
           print('Bundling original C-Dogs Ogre and BEM campaigns only')
           PY
+      - name: Exclude legacy non-free FM OPL implementation
+        run: |
+          # The original Ogre/BEM campaigns do not need Wolfenstein FM music.
+          # Replace only that old chip implementation with our GPLv2 silence stub.
+          cp tools/cdogs-opl-stub.c original/src/cdogs/cwolfmap/mame/fmopl.c
       - name: Compile official game with documented web toolchain compatibility fixes
         run: |
           cd original
