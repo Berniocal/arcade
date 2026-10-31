@@ -55,6 +55,24 @@ jobs:
           body = body.replace(compile_marker, compile_marker + '    -fcommon ' + slash + newline)
           script.write_text(body)
           PY
+      - name: Keep only original freely licensed Ogre and BEM campaigns
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+          root = Path('original')
+          missions = root / 'missions'
+          keep = {'ogre.cdogscpn', 'bem.cdogscpn'}
+          assert all((missions / name).is_dir() for name in keep)
+          for entry in missions.iterdir():
+              if entry.name in keep:
+                  continue
+              if entry.is_dir(): shutil.rmtree(entry)
+              else: entry.unlink()
+          proprietary_mod_assets = root / 'data/.wolf3d'
+          if proprietary_mod_assets.exists(): shutil.rmtree(proprietary_mod_assets)
+          print('Bundling original C-Dogs Ogre and BEM campaigns only')
+          PY
       - name: Compile official game with documented web toolchain compatibility fixes
         run: |
           cd original
@@ -84,6 +102,22 @@ jobs:
           assert 'index.data' in js
           print('C-Dogs static runtime validated')
           PY
+      - name: Test actual WebAssembly game in mobile Chromium
+        run: |
+          python3 -m venv /tmp/cdogs-browser-venv
+          /tmp/cdogs-browser-venv/bin/pip install --quiet playwright==1.56.0 pillow
+          /tmp/cdogs-browser-venv/bin/python -m playwright install --with-deps chromium
+          /tmp/cdogs-browser-venv/bin/python tests/cdogs_smoke.py
+      - name: Save browser screenshots for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cdogs-mobile-smoke
+          path: |
+            cdogs-smoke-landscape.png
+            cdogs-smoke-ui.png
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Commit tested build only on staging branch
         shell: bash
         run: |
