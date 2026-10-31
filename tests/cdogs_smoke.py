@@ -25,8 +25,9 @@ with socketserver.TCPServer(("127.0.0.1", 0), Handler) as server:
         context = browser.new_context(viewport={"width": 844, "height": 390}, is_mobile=True, has_touch=True, device_scale_factor=1)
         page = context.new_page()
         errors = []
+        game_logs = []
         page.on("pageerror", lambda e: errors.append(str(e) + "\n" + str(getattr(e, "stack", ""))))
-        page.on("console", lambda m: print("BROWSER CONSOLE:", m.type, m.text, flush=True))
+        page.on("console", lambda m: (game_logs.append(m.text), print("BROWSER CONSOLE:", m.type, m.text, flush=True)))
         page.on("requestfailed", lambda r: print("BROWSER REQUEST FAILED:", r.url, r.failure, flush=True))
         page.on("crash", lambda _: errors.append("Chromium page crashed"))
         page.goto(f"http://127.0.0.1:{port}/cdogs.html", wait_until="domcontentloaded")
@@ -51,8 +52,23 @@ with socketserver.TCPServer(("127.0.0.1", 0), Handler) as server:
             if colors > 12:
                 break
             page.wait_for_timeout(1000)
+        # A readable loading message alone is not enough: wait for the native
+        # engine's actual main menu, after all sprites/campaign data load.
+        for attempt in range(35):
+            if any("Starting game" in msg for msg in game_logs):
+                break
+            page.wait_for_timeout(1000)
+        page.wait_for_timeout(1600)
+        data = page.locator("#screen").screenshot(path=str(image_path))
+        with Image.open(io.BytesIO(data)) as im:
+            w, h = im.size
+            interior = im.crop((int(w * .17), int(h * .14), int(w * .83), int(h * .86))).convert("RGB")
+            colors = len(interior.getcolors(maxcolors=1_000_000) or [])
+            meaningful = sum(1 for rgb in interior.getdata() if max(rgb) > 45) / (interior.width * interior.height)
         page.screenshot(path=str(ROOT / "cdogs-smoke-ui.png"))
-        print("GAME PIXEL COLORS:", colors, "SYNC:",page.evaluate("Module.syncdone"), flush=True)
+        print("GAME PIXEL COLORS:", colors, "NONBLACK:", round(meaningful, 3), "MAIN MENU:",any("Starting game" in msg for msg in game_logs), flush=True)
+        assert any("Starting game" in msg for msg in game_logs), "C-Dogs never reached original main menu"
+        assert meaningful > 0.04, f"Game canvas is still mostly blank: {meaningful:.3%}"
         assert not errors, f"Browser errors after game launch: {errors}"
         assert page.evaluate("typeof Module.FS?.syncfs === 'function'"), "Persistent filesystem not exposed"
         assert colors > 12, f"Canvas remained blank/uniform for 35s ({colors} colors)"
