@@ -74,13 +74,15 @@ jobs:
           gfx = grafx.read_text()
           mark = "if (!svec2i_is_equal(res, c->Res))"
           assert mark in gfx
-          guard = """#ifdef __EMSCRIPTEN__
-	if (res.x <= 0 || res.y <= 0)
-	{
-		return;
-	}
-#endif
-	"""
+          guard = chr(10).join([
+              "#ifdef __EMSCRIPTEN__",
+              chr(9) + "if (res.x <= 0 || res.y <= 0)",
+              chr(9) + "{",
+              chr(9) * 2 + "return;",
+              chr(9) + "}",
+              "#endif",
+              chr(9),
+          ])
           gfx = gfx.replace(mark, guard + mark, 1)
           grafx.write_text(gfx)
           script.write_text(body)
