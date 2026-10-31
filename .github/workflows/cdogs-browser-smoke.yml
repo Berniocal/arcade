@@ -2,7 +2,7 @@ name: C-Dogs SDL browser and mobile input smoke
 on:
   workflow_dispatch:
   push:
-    branches: [feature/cdogs-mobile]
+    branches: [main, feature/cdogs-mobile]
     paths:
       - "cdogs.html"
       - "tests/cdogs_smoke.py"
