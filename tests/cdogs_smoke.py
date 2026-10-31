@@ -28,6 +28,7 @@ with socketserver.TCPServer(("127.0.0.1", 0), Handler) as server:
         page.on("pageerror", lambda e: errors.append(str(e) + "\n" + str(getattr(e, "stack", ""))))
         page.on("console", lambda m: print("BROWSER CONSOLE:", m.type, m.text, flush=True))
         page.on("requestfailed", lambda r: print("BROWSER REQUEST FAILED:", r.url, r.failure, flush=True))
+        page.on("crash", lambda _: errors.append("Chromium page crashed"))
         page.goto(f"http://127.0.0.1:{port}/cdogs.html", wait_until="domcontentloaded")
         assert page.locator("canvas#screen").count() == 1
         assert page.locator('[data-key="ArrowLeft"]').count() == 1
