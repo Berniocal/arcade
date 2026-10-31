@@ -1,0 +1,182 @@
+name: C-Dogs SDL — WebAssembly build (staging)
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/cdogs-mobile
+    paths:
+      - .github/workflows/cdogs-mobile-build.yml
+permissions:
+  contents: write
+jobs:
+  compile-and-verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - name: Checkout Arcade
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Checkout official C-Dogs SDL 2.5.0
+        uses: actions/checkout@v4
+        with:
+          repository: cxong/cdogs-sdl
+          ref: 2.5.0
+          path: original
+          persist-credentials: false
+      - name: Install native CMake build prerequisites
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake ninja-build libsdl2-dev libsdl2-mixer-dev libsdl2-image-dev libprotobuf-dev protobuf-compiler
+      - name: Set up Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.72
+      - name: Make upstream Emscripten script compatible with Clang 19
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("original/src/cdogs/yajl_utils.c")
+          txt = p.read_text()
+          if 'EM_ASM(' in txt and '#include <emscripten.h>' not in txt:
+              p.write_text('\n'.join(['#ifdef __EMSCRIPTEN__', '#include <emscripten.h>', '#endif', txt]))
+          script = Path("original/make_emscripten.sh")
+          body = script.read_text()
+          newline = chr(10)
+          slash = chr(92)
+          marker = '     -lidbfs.js ' + slash + newline
+          assert marker in body, 'Upstream Emscripten linker options changed'
+          flags = '     -sEXPORTED_RUNTIME_METHODS=FS,addRunDependency,removeRunDependency ' + slash + newline
+          body = body.replace(marker, marker + flags)
+          # Newer upstream CMake builds include the base64 encoder for high
+          # scores; the old Emscripten shell script forgot this source file.
+          base_marker = '    src/json/*.c ' + slash + newline
+          assert base_marker in body
+          body = body.replace(base_marker, base_marker + '    src/base64/base64.c ' + slash + newline)
+          # A WAD header incorrectly declares the same global variable in
+          # every compilation unit. Make the declaration extern and define it
+          # exactly once, to satisfy modern WebAssembly linker rules.
+          wad_header = Path('original/src/cdogs/cwolfmap/wad/waderrno.h')
+          wad_src = Path('original/src/cdogs/cwolfmap/wad/waderrno.c')
+          wadh = wad_header.read_text()
+          assert '\nint waderrno;\n' in wadh
+          wad_header.write_text(wadh.replace('\nint waderrno;\n', '\nextern int waderrno;\n'))
+          wad_src.write_text(wad_src.read_text() + '\nint waderrno = 0;\n')
+          # WebAssembly needs more than the old hardcoded 128 MiB limit on
+          # current 2.5.0; allow the original game to grow memory as needed.
+          assert '-sINITIAL_MEMORY=128mb' in body
+          assert '-sSTACK_SIZE=131072' in body
+          body = body.replace('-sINITIAL_MEMORY=128mb', '-sINITIAL_MEMORY=256mb -sALLOW_MEMORY_GROWTH=1 -sMAXIMUM_MEMORY=1024mb')
+          body = body.replace('-sSTACK_SIZE=131072', '-sSTACK_SIZE=1048576')
+          # Browser SDL reports zero-sized window events when the canvas is
+          # CSS-scaled. Never replace a valid 320x200 game framebuffer with 0x0.
+          grafx = Path("original/src/cdogs/grafx.c")
+          gfx = grafx.read_text()
+          mark = "if (!svec2i_is_equal(res, c->Res))"
+          assert mark in gfx
+          guard = chr(10).join([
+              "#ifdef __EMSCRIPTEN__",
+              chr(9) + "if (res.x <= 0 || res.y <= 0)",
+              chr(9) + "{",
+              chr(9) * 2 + "return;",
+              chr(9) + "}",
+              "#endif",
+              chr(9),
+          ])
+          gfx = gfx.replace(mark, guard + mark, 1)
+          grafx.write_text(gfx)
+          # Use the SDL2 2D software renderer in the browser. Its render-target
+          # textures are supported without WebGL context loss / zero DPI events.
+          context = Path("original/src/cdogs/window_context.c")
+          cc = context.read_text()
+          accelerated = "SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE"
+          assert accelerated in cc
+          cc = cc.replace(accelerated, "SDL_RENDERER_SOFTWARE | SDL_RENDERER_TARGETTEXTURE", 1)
+          context.write_text(cc)
+          # HTML/CSS sizes the viewport. Do not ask SDL to resize its own canvas.
+          gfx = grafx.read_text()
+          flags = "SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI"
+          assert flags in gfx
+          grafx.write_text(gfx.replace(flags, "0", 1))
+          script.write_text(body)
+          PY
+      - name: Keep only original freely licensed Ogre and BEM campaigns
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+          root = Path('original')
+          missions = root / 'missions'
+          keep = {'ogre.cdogscpn', 'bem.cdogscpn'}
+          assert all((missions / name).is_dir() for name in keep)
+          for entry in missions.iterdir():
+              if entry.name in keep:
+                  continue
+              if entry.is_dir(): shutil.rmtree(entry)
+              else: entry.unlink()
+          proprietary_mod_assets = root / 'data/.wolf3d'
+          if proprietary_mod_assets.exists(): shutil.rmtree(proprietary_mod_assets)
+          print('Bundling original C-Dogs Ogre and BEM campaigns only')
+          PY
+      - name: Exclude legacy non-free FM OPL implementation
+        run: |
+          # The original Ogre/BEM campaigns do not need Wolfenstein FM music.
+          # Replace only that old chip implementation with our GPLv2 silence stub.
+          cp tools/cdogs-opl-stub.c original/src/cdogs/cwolfmap/mame/fmopl.c
+      - name: Compile official game with documented web toolchain compatibility fixes
+        run: |
+          cd original
+          bash make_emscripten.sh
+      - name: Stage runtime assets
+        shell: bash
+        run: |
+          mkdir -p cdogs-runtime
+          cp original/emscripten/index.js cdogs-runtime/index.js
+          cp original/emscripten/index.wasm cdogs-runtime/index.wasm
+          cp original/emscripten/index.data cdogs-runtime/index.data
+          cp original/COPYING cdogs-runtime/LICENSE-GPL-2.0.txt
+          cp original/doc/README_DATA.md cdogs-runtime/README-DATA.txt
+          test -s cdogs-runtime/index.js
+          test -s cdogs-runtime/index.wasm
+          test -s cdogs-runtime/index.data
+          file cdogs-runtime/index.wasm
+          sha256sum cdogs-runtime/index.*
+          du -h cdogs-runtime/*
+          # GitHub has a 100 MiB per-object limit.
+          test "$(stat -c%s cdogs-runtime/index.data)" -lt 100000000
+          # Runtime binary is Emscripten WASM format.
+          python3 - <<'PY'
+          from pathlib import Path
+          assert Path('cdogs-runtime/index.wasm').read_bytes()[:4] == b'\0asm'
+          js=Path('cdogs-runtime/index.js').read_text()
+          assert 'index.data' in js
+          print('C-Dogs static runtime validated')
+          PY
+      - name: Commit built runtime only to development branch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cdogs-runtime
+          if ! git diff --cached --quiet; then
+            git commit -m "Build original C-Dogs SDL 2.5.0 for browser"
+            git fetch origin feature/cdogs-mobile
+            git rebase origin/feature/cdogs-mobile
+            git push origin HEAD:feature/cdogs-mobile
+          fi
+      - name: Test actual WebAssembly game in mobile Chromium
+        run: |
+          python3 -m venv /tmp/cdogs-browser-venv
+          /tmp/cdogs-browser-venv/bin/pip install --quiet playwright==1.56.0 pillow
+          /usr/bin/google-chrome --version
+          /tmp/cdogs-browser-venv/bin/python tests/cdogs_smoke.py
+      - name: Save browser screenshots for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cdogs-mobile-smoke
+          path: |
+            cdogs-smoke-landscape.png
+            cdogs-smoke-ui.png
+          if-no-files-found: ignore
+          retention-days: 7

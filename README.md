@@ -1,6 +1,6 @@
 # Arcade
 
-Český rozcestník pěti klasických her pro telefon i počítač.
+Český rozcestník šesti klasických her pro telefon i počítač.
 
 | Hra | Soubor | Hráči |
 | --- | --- | --- |
@@ -9,6 +9,7 @@
 | Arcade Volleyball | `volejbal.html` | Dva na jednom telefonu nebo proti PC, 3 obtížnosti |
 | Supaplex | `supaplex.html` | Jeden hráč, 111 původních úrovní |
 | Epic Pinball | `pinball.html` | Jeden hráč, původní DOSový sharewarový stůl Super Android |
+| C-Dogs SDL | `cdogs.html`, `cdogs-runtime/` | Jeden hráč, originální akční hra v prohlížeči s kampaněmi Ogre a BEM |
 
 Otevřete `index.html`. Hry se spouštějí ve stejné stránce a tlačítko „Všechny hry“ vrací rozcestník. Klepnutím na hodiny lze u každé hry napsat vlastní rychlost (čárka i tečka): Vlak 0,03–5 s na políčko, Pac-Man, Supaplex, pinball a míč ve volejbalu 0,1–3×. Hodnota se pamatuje v prohlížeči. Lze je otevřít také samostatně a stáhnout jako soběstačné HTML soubory. Fungují dotyková tlačítka, joystick i klávesnice. Volejbal: v ikoně soupeřů vyberte Kamarád / Počítač a lehkou, střední nebo těžkou obtížnost.
 
@@ -35,3 +36,15 @@ Epic Pinball: původní Epic MegaGames, Inc., sharewarová verze 2.1, jeden hrat
 Emulátor pinballu: DOSBox / js-dos 6.22.31, GNU GPL v2, distribuce npm `js-dos@6.22.31`. Úplné odpovídající zdroje z https://github.com/Emupedia/emupedia-library-js-dos (commit 8a05150d685aba42a8520c1134fafd276009fc97), původní licence, upravitelný mobilní adaptér, sestavení a testy jsou v offline ZIPu uvnitř HTML, dostupném v informacích. Zdrojový archiv umožňuje znovu sestavit totožný HTML soubor pomocí Pythonu 3.
 
 Rozcestník a mobilní úpravy 2026. Jednotlivé hry si ponechávají vlastní licence a autorské údaje.
+
+## C-Dogs SDL (originální open-source hra)
+
+C-Dogs SDL 2.5.0 od Cong Xu a přispěvatelů, navazuje na původní DOSovou hru od Ronnyho Westera. Hratelnost, původní dvě kampaně Ogre a BEM, grafika a engine pochází z originálu, **nejde o napodobeninu**. Webový port používá oficiální upstream zdrojový kód tagu [2.5.0](https://github.com/cxong/cdogs-sdl/tree/2.5.0) sestavený pomocí Emscripten 3.1.72. Nástrojové kompatibilitní opravy se zdrojovým kódem jsou přesně uvedeny v [sestavovacím workflow](.github/workflows/cdogs-mobile-build.yml) (chybějící `emscripten.h`, oprava deklarace `waderrno` a export souborového systému). Originální program ani herní mechaniky se nemění.
+
+Omezení herních dat: z balíku byly záměrně vynechány komunitní kampaně s nejasným původem a modové podklady pro další hry (např. Wolfenstein / Noah’s Ark). Zůstaly dvě původní kampaně původního autora, **Ogre** a **BEM**. Většina herních grafických a zvukových souborů obsahuje vlastní licenční či zdrojové poznámky přibalené ve výsledném `index.data`.
+
+**Licence a uvedení autorů:** Engine GPL-2.0 s částmi BSD / LGPL; původní grafika a kampaně byly autorem Ronny Westerem zveřejněny pod CC BY (2016); další data CC0 / CC BY / CC BY-SA podle souborů. Dokumenty [COPYING](https://github.com/cxong/cdogs-sdl/blob/2.5.0/COPYING) a [README_DATA](https://github.com/cxong/cdogs-sdl/blob/2.5.0/doc/README_DATA.md) jsou součástí sestavení, stejně jako úplný veřejný zdroj odpovídající binárnímu souboru (upstream + výše uvedené kroky). Mobilní obal v `cdogs.html` je publikován pod GPL-2.0.
+
+**Mobil:** ve vodorovném režimu jsou směrové šipky vlevo, střelba X, zbraň Z, granát S a mapa A vpravo. Podržení více tlačítek najednou funguje. Enter potvrzuje, Esc přeruší hru, fullscreen maximalizuje obraz. Hra používá WebAssembly engine, nikoli pomalý DOS emulátor. Uložení konfigurace, rekordů a postupu kampaně se provádí ve webovém úložišti IndexedDB a tlačítkem 💾, ale neumožňuje uložení uprostřed mise. Načtení originálních dat potřebuje síť; následné obnovení postupu vyžaduje stejný prohlížeč.
+
+**Ověření:** build je povolen k nasazení pouze po úspěšném kontrolním sestavení původního C-Dogs SDL, kontrole typu Wasm, testu skutečného vykreslení v Chromiu, simulovaném dotyku a ověření uložení/obnovy. Viz `tests/cdogs_smoke.py` a workflow.
