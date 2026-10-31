@@ -32,7 +32,22 @@ jobs:
         uses: mymindstorm/setup-emsdk@v14
         with:
           version: 3.1.72
-      - name: Compile upstream game and data unchanged
+      - name: Make upstream Emscripten script compatible with Clang 19
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("original/src/cdogs/yajl_utils.c")
+          txt = p.read_text()
+          if 'EM_ASM(' in txt and '#include <emscripten.h>' not in txt:
+              p.write_text('#ifdef __EMSCRIPTEN__\\n#include <emscripten.h>\\n#endif\\n' + txt)
+          script = Path("original/make_emscripten.sh")
+          body = script.read_text()
+          marker = '     -lidbfs.js \\\\n'
+          assert marker in body, 'Upstream Emscripten linker options changed'
+          body = body.replace(marker, marker + '     -sEXPORTED_RUNTIME_METHODS=FS,addRunDependency,removeRunDependency \\\\n')
+          script.write_text(body)
+          PY
+      - name: Compile official game with documented web toolchain compatibility fixes
         run: |
           cd original
           bash make_emscripten.sh
