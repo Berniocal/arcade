@@ -122,6 +122,18 @@ jobs:
           assert 'index.data' in js
           print('C-Dogs static runtime validated')
           PY
+      - name: Commit built runtime only to development branch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cdogs-runtime
+          if ! git diff --cached --quiet; then
+            git commit -m "Build original C-Dogs SDL 2.5.0 for browser"
+            git fetch origin feature/cdogs-mobile
+            git rebase origin/feature/cdogs-mobile
+            git push origin HEAD:feature/cdogs-mobile
+          fi
       - name: Test actual WebAssembly game in mobile Chromium
         run: |
           python3 -m venv /tmp/cdogs-browser-venv
@@ -138,15 +150,3 @@ jobs:
             cdogs-smoke-ui.png
           if-no-files-found: ignore
           retention-days: 7
-      - name: Commit tested build only on staging branch
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add cdogs-runtime
-          if ! git diff --cached --quiet; then
-            git commit -m "Build original C-Dogs SDL 2.5.0 for browser"
-            git fetch origin feature/cdogs-mobile
-            git rebase origin/feature/cdogs-mobile
-            git push origin HEAD:feature/cdogs-mobile
-          fi
