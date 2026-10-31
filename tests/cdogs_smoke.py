@@ -24,7 +24,9 @@ with socketserver.TCPServer(("127.0.0.1", 0), Handler) as server:
         context = browser.new_context(viewport={"width": 844, "height": 390}, is_mobile=True, has_touch=True, device_scale_factor=1)
         page = context.new_page()
         errors = []
-        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.on("pageerror", lambda e: errors.append(str(e) + "\n" + str(getattr(e, "stack", ""))))
+        page.on("console", lambda m: print("BROWSER CONSOLE:", m.type, m.text, flush=True))
+        page.on("requestfailed", lambda r: print("BROWSER REQUEST FAILED:", r.url, r.failure, flush=True))
         page.goto(f"http://127.0.0.1:{port}/cdogs.html", wait_until="domcontentloaded")
         assert page.locator("canvas#screen").count() == 1
         assert page.locator('[data-key="ArrowLeft"]').count() == 1
@@ -32,6 +34,8 @@ with socketserver.TCPServer(("127.0.0.1", 0), Handler) as server:
         page.locator("#start").click()
         page.wait_for_function("document.getElementById('overlay').hidden === true", timeout=55_000)
         page.wait_for_timeout(5000)
+        page.screenshot(path=str(ROOT / "cdogs-smoke-ui.png"))
+        page.locator("#screen").screenshot(path=str(ROOT / "cdogs-smoke-landscape.png"))
         assert not errors, f"Browser errors after game launch: {errors}"
         assert page.evaluate("typeof Module.FS?.syncfs === 'function'"), "Persistent filesystem not exposed"
         image_path = ROOT / "cdogs-smoke-landscape.png"
