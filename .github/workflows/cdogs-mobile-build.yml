@@ -85,6 +85,19 @@ jobs:
           ])
           gfx = gfx.replace(mark, guard + mark, 1)
           grafx.write_text(gfx)
+          # Use the SDL2 2D software renderer in the browser. Its render-target
+          # textures are supported without WebGL context loss / zero DPI events.
+          context = Path("original/src/cdogs/window_context.c")
+          cc = context.read_text()
+          accelerated = "SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE"
+          assert accelerated in cc
+          cc = cc.replace(accelerated, "SDL_RENDERER_SOFTWARE | SDL_RENDERER_TARGETTEXTURE", 1)
+          context.write_text(cc)
+          # HTML/CSS sizes the viewport. Do not ask SDL to resize its own canvas.
+          gfx = grafx.read_text()
+          flags = "SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI"
+          assert flags in gfx
+          grafx.write_text(gfx.replace(flags, "0", 1))
           script.write_text(body)
           PY
       - name: Keep only original freely licensed Ogre and BEM campaigns
