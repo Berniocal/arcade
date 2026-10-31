@@ -34,6 +34,29 @@ with socketserver.TCPServer(("127.0.0.1", 0), Handler) as server:
         assert page.locator("canvas#screen").count() == 1
         assert page.locator('[data-key="ArrowLeft"]').count() == 1
         assert page.locator('[data-key="KeyX"]').count() == 1
+        # The landscape screen must fill the available height, without HUD bars.
+        metrics = page.evaluate("""() => {
+          const arena=document.getElementById('arena').getBoundingClientRect();
+          const view=document.getElementById('viewport').getBoundingClientRect();
+          const pad=document.getElementById('leftSide').getBoundingClientRect();
+          const actions=document.getElementById('rightSide').getBoundingClientRect();
+          return {arena:{x:arena.x,y:arena.y,width:arena.width,height:arena.height},
+                  viewport:{x:view.x,y:view.y,width:view.width,height:view.height},
+                  left:{x:pad.x,width:pad.width},right:{x:actions.x,width:actions.width}};
+        }""")
+        print("LANDSCAPE LAYOUT",metrics,flush=True)
+        assert metrics["viewport"]["height"] >= 385, "Game did not expand to landscape full height"
+        assert metrics["viewport"]["y"] < 5, "Game has unwanted top bar"
+        assert metrics["left"]["x"] < metrics["viewport"]["x"], "Movement controls are not on the left"
+        assert metrics["right"]["x"] >= metrics["viewport"]["x"] + metrics["viewport"]["width"], "Action controls are not on the right"
+        assert page.locator("header").count() == 0, "Top header still rendered"
+        assert page.locator("#joystick").is_hidden()
+        page.locator("#joystickMode").click()
+        assert page.locator("#joystick").is_visible()
+        assert page.locator("#dpad").is_hidden()
+        page.locator("#arrowsMode").click()
+        assert page.locator("#dpad").is_visible()
+        assert page.locator("#joystick").is_hidden()
         page.locator("#start").click()
         page.wait_for_function("document.getElementById('overlay').hidden === true", timeout=55_000)
         # Native C-Dogs mounts its own /persistent_data after onRuntimeInitialized.
@@ -78,6 +101,23 @@ with socketserver.TCPServer(("127.0.0.1", 0), Handler) as server:
         """)
         page.locator('[data-key="KeyX"]').tap()
         assert "KeyX" in page.evaluate("window.__observedKeys"), "Touch fire button did not send a keyboard event"
+        # The joystick must issue keydown/keyup, including diagonals.
+        page.locator("#joystickMode").click()
+        page.evaluate("window.__observedKeys=[]")
+        stick = page.locator("#joystick").bounding_box()
+        assert stick is not None
+        jx = stick["x"] + stick["width"]/2
+        jy = stick["y"] + stick["height"]/2
+        page.mouse.move(jx, jy)
+        page.mouse.down()
+        page.mouse.move(jx+stick["width"]*.33, jy-stick["height"]*.33,steps=4)
+        page.wait_for_timeout(130)
+        observed = page.evaluate("window.__observedKeys")
+        assert "ArrowUp" in observed and "ArrowRight" in observed, f"Joystick diagonal failed: {observed}"
+        page.mouse.up()
+        assert page.locator("#joystick").get_attribute("class") is None or "active" not in (page.locator("#joystick").get_attribute("class") or ""), "Joystick remained active on release"
+        page.locator("#arrowsMode").click()
+        assert page.locator("#dpad").is_visible()
         # Check save-path roundtrip across reload.
         page.evaluate("Module.FS.writeFile('/persistent_data/cdogs-test-save.txt', 'saved from browser')")
         page.locator("#saveBtn").click()
