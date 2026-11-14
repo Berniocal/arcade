@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "age-of-war.html"
+      - "age-of-war-adaptace.html"
       - "index.html"
       - "tests/age_of_war_smoke.py"
       - ".github/workflows/age-of-war-smoke.yml"
