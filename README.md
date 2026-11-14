@@ -1,6 +1,6 @@
 # Arcade
 
-Český rozcestník sedmi retro her pro telefon i počítač.
+Český rozcestník her pro telefon i počítač; Age of War obsahuje odkaz na původní hru.
 
 | Hra | Soubor | Hráči |
 | --- | --- | --- |
@@ -10,7 +10,7 @@
 | Supaplex | `supaplex.html` | Jeden hráč, 111 původních úrovní |
 | Epic Pinball | `pinball.html` | Jeden hráč, původní DOSový sharewarový stůl Super Android |
 | C-Dogs SDL | `cdogs.html`, `cdogs-runtime/` | Jeden hráč, originální akční hra v prohlížeči s kampaněmi Ogre a BEM |
-| Age of War (webová adaptace) | `age-of-war.html` | Jeden hráč, pět epoch, jednotky, věže, zvláštní útok a AI |
+| Age of War (původní hra 2007) | `age-of-war.html` (odkazy na originál) | Jeden hráč, originální hra na Newgrounds / Max Games, vyžaduje internet |
 
 Otevřete `index.html`. Hry se spouštějí ve stejné stránce a tlačítko „Všechny hry“ vrací rozcestník. Klepnutím na hodiny lze u každé hry napsat vlastní rychlost (čárka i tečka): Vlak 0,03–5 s na políčko, Pac-Man, Supaplex, pinball a míč ve volejbalu 0,1–3×. Hodnota se pamatuje v prohlížeči. Lze je otevřít také samostatně a stáhnout jako soběstačné HTML soubory. Fungují dotyková tlačítka, joystick i klávesnice. Volejbal: v ikoně soupeřů vyberte Kamarád / Počítač a lehkou, střední nebo těžkou obtížnost.
 
@@ -50,8 +50,10 @@ Omezení herních dat: z balíku byly záměrně vynechány komunitní kampaně 
 
 **Ověření:** build je povolen k nasazení pouze po úspěšném kontrolním sestavení původního C-Dogs SDL, kontrole typu Wasm, testu skutečného vykreslení v Chromiu, simulovaném dotyku a ověření uložení/obnovy. Viz `tests/cdogs_smoke.py` a workflow.
 
-## Age of War – webová adaptace
+## Age of War – původní hra
 
-Samostatná, offline hratelná HTML/CSS/JS strategická hra v jednom souboru `age-of-war.html`. Obsahuje pět epoch od doby kamenné po budoucnost, tři druhy jednotek a tři úrovně věží v každé epoše, výcvikovou frontu, zlato, XP, postup epochami, specializované útoky a tři obtížnosti AI. Ovládání: myš nebo dotyk; bojiště přetáhnout nebo použít šipky; klávesy 1–3 pro nákup, E vývoj, S zvláštní útok, P/Esc pauza, M zvuk. Nabízí fullscreen a český návod. Všechny grafické prvky a zvukové efekty jsou generované lokálně v Canvas 2D / Web Audio; hra nepotřebuje síť ani balíčky.
+Položka v rozcestníku **Age of War** vede přes `age-of-war.html` k původní Flash hře zveřejněné autorem Louissi na [Newgrounds](https://www.newgrounds.com/portal/view/408209) a u vydavatele [Max Games](https://www.maxgames.com/game/age-of-war.html). Tyto původní stránky mohou používat Flash emulaci a vyžadují internet. Originální SWF, grafika ani soundtrack nejsou přebaleny nebo distribuovány v repozitáři; k samostatnému hostování nebylo ověřeno oprávnění.
 
-**Autorská práva:** Jde o nezávislou adaptaci herních principů, **nikoli původní Flash hru**, její kopii ani autorizovaný port. Původní Age of War vytvořil Louissi a publikovaly Max Games; jejich grafika a hudba zde použity nejsou. Autorský webový kód této verze je součástí tohoto repozitáře.
+Předchozí neoriginální HTML/CSS/JS prototyp je zálohován samostatně jako `age-of-war-adaptace.html`. Nejde o autentickou verzi, kopii ani oficiální port. Obsahuje vlastní kresby a zvuky a není prezentován jako původní titul.
+
+Na Androidu je dostupná také [oficiální mobilní aplikace Max Games](https://play.google.com/store/apps/details?id=com.maxgames.ageofwar1).
