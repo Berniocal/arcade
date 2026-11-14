@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Small browser smoke test for the standalone Age of War web game."""
+"""Small browser smoke test for the Age of War original-game gateway and archived prototype."""
 from contextlib import contextmanager
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 import os
@@ -57,17 +57,23 @@ with serve() as base:
         browser = p.chromium.launch(headless=True, executable_path=os.getenv("CHROME", "/usr/bin/google-chrome"), args=["--no-sandbox"])
         try:
             desktop = browser.new_page(viewport={"width": 1100, "height": 780})
-            smoke(desktop, base + "/age-of-war.html", "age-of-war-desktop.png")
+            smoke(desktop, base + "/age-of-war-adaptace.html", "age-of-war-desktop.png")
             desktop.close()
             mobile = browser.new_page(viewport={"width": 390, "height": 844}, has_touch=True, is_mobile=True)
-            smoke(mobile, base + "/age-of-war.html", "age-of-war-mobile.png")
+            smoke(mobile, base + "/age-of-war-adaptace.html", "age-of-war-mobile.png")
             mobile.close()
+            gateway = browser.new_page()
+            gateway.goto(base + "/age-of-war.html")
+            assert "původní hra" in gateway.title()
+            assert gateway.locator('a[href="https://www.newgrounds.com/portal/view/408209"]').count() == 1
+            assert gateway.locator('a[href="https://www.maxgames.com/game/age-of-war.html"]').count() == 1
+            gateway.close()
             directory = browser.new_page()
             directory.goto(base + "/index.html")
             assert directory.locator('[data-game="ageofwar"]').count() == 1
             directory.locator('[data-game="ageofwar"]').click()
             assert directory.locator("#gameFrame").get_attribute("src") == "age-of-war.html"
             directory.close()
-            print("Age of War smoke OK (desktop, mobile, arcade integration)")
+            print("Age of War smoke OK (original links, prototype, desktop, mobile, arcade integration)")
         finally:
             browser.close()
