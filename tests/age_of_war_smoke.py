@@ -72,6 +72,7 @@ with serve() as base:
             directory.goto(base + "/index.html")
             assert directory.locator('[data-game="ageofwar"]').count() == 1
             directory.locator('[data-game="ageofwar"]').click()
+            directory.wait_for_function("document.querySelector('#gameFrame').getAttribute('src') === 'age-of-war.html'")
             assert directory.locator("#gameFrame").get_attribute("src") == "age-of-war.html"
             directory.close()
             print("Age of War smoke OK (original links, prototype, desktop, mobile, arcade integration)")
