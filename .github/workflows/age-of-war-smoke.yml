@@ -1,0 +1,34 @@
+name: Age of War browser smoke
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "age-of-war.html"
+      - "index.html"
+      - "tests/age_of_war_smoke.py"
+      - ".github/workflows/age-of-war-smoke.yml"
+permissions:
+  contents: read
+jobs:
+  browser-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Playwright smoke on desktop and mobile viewports
+        run: |
+          python3 -m venv /tmp/age-of-war-test
+          /tmp/age-of-war-test/bin/pip install --quiet playwright==1.56.0
+          /usr/bin/google-chrome --version
+          /tmp/age-of-war-test/bin/python tests/age_of_war_smoke.py
+      - name: Save screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: age-of-war-browser
+          path: |
+            age-of-war-desktop.png
+            age-of-war-mobile.png
+          if-no-files-found: ignore
+          retention-days: 7
